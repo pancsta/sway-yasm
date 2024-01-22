@@ -13,6 +13,7 @@
 4. Dark mode support (optional)<br />
    Checks `gsettings get org.gnome.desktop.interface color-scheme`
 5. Shows workspaces and outputs (especially headless)
+6. 1-hand compatible keystrokes
 
 ## Usage
 
@@ -44,7 +45,7 @@ Switcher mode:
 - `ctrl+c` close the switcher
 - `a-z`, `0-9` fuzzy search
 
-Example - switch to the 2nd MRU window:
+Example - switch to the 3nd MRU window:
 
 - `alt+tab`
 - `tab`
