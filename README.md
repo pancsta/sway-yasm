@@ -65,4 +65,4 @@ See the [config section in main.go](main.go), modify and `go build`.
 
 - [applist.py](https://github.com/davxy/dotfiles/blob/main/_old/sway/applist.py)
 - [sway-fzfify](https://github.com/ldelossa/sway-fzfify)
-- [gosway/ipc](https://github.com/gosway)
+- [Difrex/gosway](https://github.com/Difrex/gosway)
