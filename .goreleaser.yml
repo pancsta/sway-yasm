@@ -1,0 +1,19 @@
+builds:
+  - id: "sway-yast"
+    main: "./cmd/sway-yast/main.go"
+    binary: "sway-yast"
+    goos:
+      - linux
+    goarch:
+      - 386
+      - amd64
+      - arm64
+    goarm:
+      - 7
+
+release:
+  github:
+    owner: pancsta
+    name: sway-yast
+  draft: true
+  replace_existing_draft: true

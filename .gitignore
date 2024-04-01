@@ -47,3 +47,5 @@ go.work
 /sway-yast
 /test.sh
 /data.txt
+
+/dist

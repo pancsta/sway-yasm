@@ -1,13 +1,20 @@
 module github.com/pancsta/sway-yast
 
-go 1.21.6
+go 1.22.3
 
 require (
-	github.com/Difrex/gosway/ipc v0.0.0-20230801141530-6213ced34703
+	github.com/Difrex/gosway/ipc v0.0.0-20240312143858-20214f4c38d6
+	github.com/fsnotify/fsnotify v1.7.0
+	github.com/pancsta/asyncmachine-go v0.5.0
+	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.0
 )
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	go.opentelemetry.io/otel v1.24.0 // indirect
+	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 )
