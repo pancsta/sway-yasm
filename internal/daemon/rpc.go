@@ -11,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	ss "github.com/pancsta/sway-yast/pkg/watcher/states"
+	ss "github.com/pancsta/sway-yast/internal/watcher/states"
+	usrCmds "github.com/pancsta/sway-yast/pkg/usr-cmds"
 )
 
 // RPC
@@ -20,13 +21,16 @@ var client *rpc.Client
 
 type RPCArgs struct {
 	WinID             int
+	SpaceNum          int
 	Workspace         string
 	PID               int
 	MouseFollowsFocus bool
 	ExePath           string
+	UsrCmd            string
+	UsrArgs           string
 }
 
-// RPC method
+// RemoteWinList is an RPC method
 func (d *Daemon) RemoteWinList(_ RPCArgs, reply *string) error {
 	ids := ""
 	for _, id := range d.winFocus {
@@ -36,7 +40,7 @@ func (d *Daemon) RemoteWinList(_ RPCArgs, reply *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteFZFList is an RPC method
 func (d *Daemon) RemoteFZFList(_ RPCArgs, reply *string) error {
 	ret := ""
 	// TODO extract
@@ -56,15 +60,15 @@ func (d *Daemon) RemoteFZFList(_ RPCArgs, reply *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteFZFListPickWin is an RPC method
 func (d *Daemon) RemoteFZFListPickWin(_ RPCArgs, reply *string) error {
-	wspace := d.winData[d.winFocus[0]].Workspace
+	space := d.winData[d.winFocus[0]].Workspace
 	ret := ""
 	// TODO extract
 	for _, id := range d.winFocus {
 		data := d.winData[id]
 		// skip same workspace
-		if data.Workspace == wspace {
+		if data.Workspace == space {
 			continue
 		}
 		display := strings.Replace(data.Output, "HEADLESS-", "H-", 1)
@@ -81,9 +85,9 @@ func (d *Daemon) RemoteFZFListPickWin(_ RPCArgs, reply *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteFZFListPickSpace is an RPC method
 func (d *Daemon) RemoteFZFListPickSpace(_ RPCArgs, reply *string) error {
-	currWin := d.CurrentWin()
+	currWin := d.FocusedWindow()
 	spaces, err := d.ListSpaces([]string{currWin.Output})
 	if err != nil {
 		log.Printf("error: %s", err)
@@ -93,7 +97,7 @@ func (d *Daemon) RemoteFZFListPickSpace(_ RPCArgs, reply *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteShouldOpen is an RPC method
 func (d *Daemon) RemoteShouldOpen(args RPCArgs, reply *string) error {
 	if d.openedByPID == 0 {
 		*reply = "true"
@@ -114,7 +118,7 @@ func (d *Daemon) RemoteShouldOpen(args RPCArgs, reply *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteFocusWinID is an RPC method
 func (d *Daemon) RemoteFocusWinID(args RPCArgs, _ *string) error {
 	log.Printf("focusing %d...", args.WinID)
 	err := d.FocusWinID(args.WinID)
@@ -125,44 +129,27 @@ func (d *Daemon) RemoteFocusWinID(args RPCArgs, _ *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteMoveSpaceToOutput is an RPC method
 func (d *Daemon) RemoteMoveSpaceToOutput(args RPCArgs, _ *string) error {
-	currentWin := d.CurrentWin()
+	currentWin := d.FocusedWindow()
 	if currentWin.Output == "" {
 		err := errors.New("no focused window / output")
 		log.Printf("error: %s", err)
+
 		return err
 	}
-	log.Printf("moving space %s to %s", args.Workspace, currentWin.Output)
-	msgs := []string{
-		fmt.Sprintf("workspace %s", args.Workspace),
-		fmt.Sprintf("move workspace to output %s", currentWin.Output),
+
+	err2 := d.MoveSpaceToOutput(args.Workspace, currentWin.Output, currentWin)
+	if err2 != nil {
+		return err2
 	}
-	err := d.SwayMsgs(msgs)
-	if err != nil {
-		log.Printf("error: %s", err)
-		return err
-	}
-	time.Sleep(100 * time.Millisecond)
-	// focus the original window back
-	err = d.FocusWinID(currentWin.ID)
-	if err != nil {
-		log.Printf("error: %s", err)
-		return err
-	}
-	if d.MouseFollowsFocus {
-		err = d.MouseToOutput(currentWin.Output)
-		if err != nil {
-			log.Printf("error: %s", err)
-			return err
-		}
-	}
+
 	return nil
 }
 
-// RPC method
+// RemoteMoveWinToSpace is an RPC method
 func (d *Daemon) RemoteMoveWinToSpace(args RPCArgs, _ *string) error {
-	space := d.CurrentWin().Workspace
+	space := d.FocusedWindow().Workspace
 	if space == "" {
 		err := errors.New("no focused window / space")
 		log.Printf("error: %s", err)
@@ -182,7 +169,7 @@ func (d *Daemon) RemoteMoveWinToSpace(args RPCArgs, _ *string) error {
 	return nil
 }
 
-// RPC method
+// RemoteSetConfig is an RPC method
 func (d *Daemon) RemoteSetConfig(args RPCArgs, _ *string) error {
 	log.Printf("RemoteSetConfig %v...", args.MouseFollowsFocus)
 	d.MouseFollowsFocus = args.MouseFollowsFocus
@@ -193,10 +180,11 @@ func (d *Daemon) RemoteSetConfig(args RPCArgs, _ *string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
-// RPC method
+// RemoteGetPathFiles is an RPC method
 func (d *Daemon) RemoteGetPathFiles(args RPCArgs, ret *string) error {
 	log.Printf("RemoteGetPathFiles...")
 	<-d.watcher.Mach.When1(ss.AllRefreshed, nil)
@@ -204,10 +192,11 @@ func (d *Daemon) RemoteGetPathFiles(args RPCArgs, ret *string) error {
 	d.watcher.ResultsLock.Lock()
 	defer d.watcher.ResultsLock.Unlock()
 	*ret += strings.Join(d.watcher.Results, "\n")
+
 	return nil
 }
 
-// RPC method
+// RemoteExec is an RPC method
 func (d *Daemon) RemoteExec(args RPCArgs, ret *string) error {
 	log.Printf("RemoteExec...")
 	path := args.ExePath
@@ -215,17 +204,33 @@ func (d *Daemon) RemoteExec(args RPCArgs, ret *string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// TODO timeout
+// RemoteWinToSpace is an RPC method
+func (d *Daemon) RemoteWinToSpace(args RPCArgs, ret *string) error {
+	log.Printf("RemoteWinToSpace...")
+
+	cw := d.FocusedWindow()
+	err2 := d.MoveWinToSpaceNum(cw.ID, args.SpaceNum)
+	if err2 != nil {
+		return err2
+	}
+
+	return nil
+}
+
 func RemoteCall(method string, args RPCArgs) (string, error) {
+	// TODO timeout
 	log.Printf("rpcCall %s...", method)
+
 	var err error
 	url := rpcHost
 	if os.Getenv("YAST_DEBUG") != "" {
 		url = rpcHostDbg
 	}
+
 	if client == nil {
 		client, err = rpc.Dial("tcp", url)
 		if err != nil {
@@ -238,11 +243,47 @@ func RemoteCall(method string, args RPCArgs) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return reply, nil
 }
 
+// RemoteUsrCmd is an RPC method
+func (d *Daemon) RemoteUsrCmd(rpcArgs RPCArgs, rpcRet *string) error {
+	log.Printf("RemoteUsrCmd... " + rpcArgs.UsrCmd)
+
+	// init
+	var (
+		cmdRet string
+		err    error
+		args   = parseFlags(strings.Trim(rpcArgs.UsrArgs, " \n"))
+	)
+
+	// run
+	for name, fn := range usrCmds.Registered {
+		if name != rpcArgs.UsrCmd {
+			continue
+		}
+		cmdRet, err = fn(d, args)
+		break
+	}
+
+	// err
+	if err != nil {
+		log.Printf("error: %s", err)
+		return err
+	}
+
+	// ret
+	log.Printf("cmdRet: %s", cmdRet)
+	*rpcRet = cmdRet
+	return nil
+}
+
+// SERVER
+
 func rpcServer(out *log.Logger, server any) {
 	err := rpc.Register(server)
+
 	if err != nil {
 		out.Fatal("register error:", err)
 	}
@@ -250,6 +291,7 @@ func rpcServer(out *log.Logger, server any) {
 	if os.Getenv("YAST_DEBUG") != "" {
 		url = rpcHostDbg
 	}
+
 	l, err := net.Listen("tcp", url)
 	if err != nil {
 		out.Fatal("listen error:", err)

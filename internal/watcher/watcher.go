@@ -12,7 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	am "github.com/pancsta/asyncmachine-go/pkg/machine"
 	"github.com/pancsta/asyncmachine-go/pkg/telemetry"
-	ss "github.com/pancsta/sway-yast/pkg/watcher/states"
+	ss "github.com/pancsta/sway-yast/internal/watcher/states"
 )
 
 // PathWatcher watches all dirs in PATH for changes and returns a list
@@ -44,7 +44,7 @@ func New(ctx context.Context) (*PathWatcher, error) {
 		ID: "watcher",
 	}
 
-	if os.Getenv("YAST_DEBUG") != "" {
+	if isAMDebug() {
 		opts.HandlerTimeout = time.Minute
 		opts.DontPanicToException = true
 	}
@@ -61,7 +61,8 @@ func New(ctx context.Context) (*PathWatcher, error) {
 	}
 
 	w.Mach.SetTestLogger(log.Printf, am.LogChanges)
-	if os.Getenv("YAST_DEBUG") != "" {
+	w.Mach.SetLogArgs(am.NewArgsMapper([]string{"dir"}, 0))
+	if isAMDebug() {
 		err = telemetry.TransitionsToDBG(w.Mach, "")
 		if err != nil {
 			return nil, err
@@ -94,15 +95,15 @@ func (w *PathWatcher) WatchingState(e *am.Event) {
 	go w.watchLoop(ctx)
 
 	// subscribe
-	for _, dirName := range dirs {
+	for _, dir := range dirs {
 
 		// if path doesn't exist, continue
-		if _, err := os.Stat(dirName); os.IsNotExist(err) {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			continue
 		}
 
 		// create state per dir
-		err := w.watcher.Add(dirName)
+		err := w.watcher.Add(dir)
 		if err != nil {
 			e.Machine.AddErr(err)
 		}
@@ -115,10 +116,10 @@ func (w *PathWatcher) WatchingState(e *am.Event) {
 			continue
 		}
 
-		w.dirState[dirName] = state
+		w.dirState[dir] = state
 
 		// schedule a refresh
-		w.Mach.Add1(ss.Refreshing, am.A{"dirName": dirName})
+		w.Mach.Add1(ss.Refreshing, am.A{"dir": dir})
 	}
 }
 
@@ -172,10 +173,10 @@ func (w *PathWatcher) ChangeEventState(e *am.Event) {
 			return
 		}
 	}
-	dirName := filepath.Dir(event.Name)
+	dir := filepath.Dir(event.Name)
 
 	w.Mach.Add1(ss.Refreshing, am.A{
-		"dirName": dirName,
+		"dir": dir,
 	})
 }
 
@@ -186,9 +187,9 @@ func (w *PathWatcher) ExceptionState(e *am.Event) {
 func (w *PathWatcher) RefreshingEnter(e *am.Event) bool {
 
 	// validate req params
-	_, ok1 := e.Args["dirName"]
-	dirName, ok2 := e.Args["dirName"].(string)
-	dirState, ok3 := w.dirState[dirName]
+	_, ok1 := e.Args["dir"]
+	dir, ok2 := e.Args["dir"].(string)
+	dirState, ok3 := w.dirState[dir]
 	depsOk := ok1 && ok2 && ok3
 	if !depsOk {
 		return false
@@ -206,22 +207,22 @@ func (w *PathWatcher) RefreshingEnter(e *am.Event) bool {
 func (w *PathWatcher) RefreshingState(e *am.Event) {
 	w.Mach.Remove1(ss.Refreshing, nil)
 
-	dirName := e.Args["dirName"].(string)
-	dirState := w.dirState[dirName]
+	dir := e.Args["dir"].(string)
+	dirState := w.dirState[dir]
 	// TODO config
 	debounce := time.Second
 
 	// max 1 refresh per second
-	since := time.Since(w.lastRefresh[dirName])
+	since := time.Since(w.lastRefresh[dir])
 	shouldDebounce := since < debounce
 	if dirState.Is1(ss.DirCached) && shouldDebounce {
-		w.Mach.Log("Debounce for %s", dirName)
+		w.Mach.Log("Debounce for %s", dir)
 		dirState.Add1(ss.DirDebounced, nil)
 
 		go func() {
 			time.Sleep(debounce)
 			w.Mach.Add1(ss.Refreshing, am.A{
-				"dirName":    dirName,
+				"dir":        dir,
 				"isDebounce": true,
 			})
 		}()
@@ -229,26 +230,25 @@ func (w *PathWatcher) RefreshingState(e *am.Event) {
 		return
 	}
 
-	w.Mach.Log("Refreshing execs in %s", dirName)
 	dirState.Add1(ss.Refreshing, nil)
-	w.ongoing[dirName] = dirState.NewStateCtx(ss.Refreshing)
-	ctx := w.ongoing[dirName]
+	w.ongoing[dir] = dirState.NewStateCtx(ss.Refreshing)
+	ctx := w.ongoing[dir]
 
 	go func() {
 		if ctx.Err() != nil {
 			return // expired
 		}
 
-		executables, err := listExecutables(dirName)
+		executables, err := listExecutables(dir)
 		if err != nil {
 			e.Machine.AddErr(err)
 		}
 
 		w.Mach.Remove1(ss.Refreshing, am.A{
-			"dirName": dirName,
+			"dir": dir,
 		})
 		w.Mach.Add1(ss.Refreshed, am.A{
-			"dirName":     dirName,
+			"dir":         dir,
 			"executables": executables,
 		})
 	}()
@@ -256,11 +256,11 @@ func (w *PathWatcher) RefreshingState(e *am.Event) {
 
 func (w *PathWatcher) RefreshingExit(e *am.Event) bool {
 	// GC
-	_, ok := e.Args["dirName"]
+	_, ok := e.Args["dir"]
 	if ok {
-		dirName, ok := e.Args["dirName"].(string)
+		dir, ok := e.Args["dir"].(string)
 		if ok {
-			delete(w.ongoing, dirName)
+			delete(w.ongoing, dir)
 		}
 	}
 
@@ -282,7 +282,7 @@ func (w *PathWatcher) RefreshingEnd(e *am.Event) {
 
 func (w *PathWatcher) RefreshedEnter(e *am.Event) bool {
 	// validate req params
-	_, ok1 := e.Args["dirName"].(string)
+	_, ok1 := e.Args["dir"].(string)
 	_, ok2 := e.Args["executables"].([]string)
 
 	return ok1 && ok2
@@ -291,13 +291,13 @@ func (w *PathWatcher) RefreshedEnter(e *am.Event) bool {
 func (w *PathWatcher) RefreshedState(e *am.Event) {
 	w.Mach.Remove1(ss.Refreshed, nil)
 
-	dirName := e.Args["dirName"].(string)
+	dir := e.Args["dir"].(string)
 	executables := e.Args["executables"].([]string)
-	w.dirCache[dirName] = executables
-	w.lastRefresh[dirName] = time.Now()
+	w.dirCache[dir] = executables
+	w.lastRefresh[dir] = time.Now()
 
 	// update the per-dir state
-	w.dirState[dirName].Add(am.S{ss.Refreshed, ss.DirCached}, nil)
+	w.dirState[dir].Add(am.S{ss.Refreshed, ss.DirCached}, nil)
 
 	// try to finish the whole refresh
 	w.Mach.Add1(ss.AllRefreshed, nil)
@@ -325,7 +325,13 @@ func (w *PathWatcher) Stop() {
 	w.Mach.Remove1(ss.Init, nil)
 }
 
-///// HELPERS /////
+// ///// ///// /////
+// ///// HELPERS
+// ///// ///// /////
+
+func isAMDebug() bool {
+	return os.Getenv("YAST_DEBUG") == "2"
+}
 
 func isExecutable(path string) (bool, error) {
 	info, err := os.Stat(path)

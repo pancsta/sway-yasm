@@ -1,5 +1,3 @@
-github.com/Difrex/gosway/ipc v0.0.0-20240312143858-20214f4c38d6 h1:NNwFpnJquqoJYSHJ9YIeRfZ/YEpPh6zy9a9rPVocvM4=
-github.com/Difrex/gosway/ipc v0.0.0-20240312143858-20214f4c38d6/go.mod h1:hZTd2MPJSe6oi3O8arSxP2WEoIuHLgct4v0t1ssBtTU=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -11,8 +9,10 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/lithammer/dedent v1.1.0 h1:VNzHMVCBNG1j0fh3OrsFRkVUwStdDArbgBWoPAffktY=
 github.com/lithammer/dedent v1.1.0/go.mod h1:jrXYCQtgg0nJiN+StA2KgR7w6CiQNv9Fd/Z9BP0jIOc=
-github.com/pancsta/asyncmachine-go v0.5.0 h1:Ni/iKSMSAzXMSHMwpKxgx9XV0YO46Pytuz8Brl8w40E=
-github.com/pancsta/asyncmachine-go v0.5.0/go.mod h1:MgCUqekozL+AgwsY6CwApHhAS0td9uEm1nW13bAkIVo=
+github.com/pancsta/asyncmachine-go v0.6.1 h1:WEOKXV+qYAM1tVESt3dnHyyPmrrVI02iIqOdSkrcP1c=
+github.com/pancsta/asyncmachine-go v0.6.1/go.mod h1:hoG7VB315eqgnRvVfZQQcw7B7CrJMkwqNNHH8N+7CGs=
+github.com/pancsta/gosway/ipc v0.0.0-20240714161203-b47bb358f535 h1:lzXo+KaitWLZhckXizQ5Lkl5dOZ+ENeO0mWWfeYikN4=
+github.com/pancsta/gosway/ipc v0.0.0-20240714161203-b47bb358f535/go.mod h1:hZTd2MPJSe6oi3O8arSxP2WEoIuHLgct4v0t1ssBtTU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

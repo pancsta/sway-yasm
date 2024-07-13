@@ -54,7 +54,7 @@ Flags:
 ## features
 
 - daemon (IPC & RPC) architecture, filesystem-free
-- uses `fzf` so it works in the terminal
+- uses `fzf`, so it works in the terminal
 - renders a floating popup using `foot` (optional)
 - dark mode support (optional)<br />
   checks `gsettings get org.gnome.desktop.interface color-scheme`
@@ -179,6 +179,12 @@ See the [top config section in internal/pkg/daemon.go](internal/pkg/daemon.go), 
 ## troubleshooting
 
 `env YAST_LOG=1 sway-yast`
+
+## development
+
+- `go build cmd/sway-yast/main.go`
+- `env YAST_LOG=1 YAST_DEBUG=1 ./main deamon`
+- `env YAST_LOG=1 YAST_DEBUG=1 ./main switcher`
 
 ## changelog
 
