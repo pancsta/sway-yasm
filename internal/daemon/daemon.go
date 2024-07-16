@@ -2,20 +2,21 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
-	"errors"
-	"os"
-	"slices"
-	
-	"github.com/pancsta/sway-yast/internal/types"
-	"github.com/pancsta/sway-yast/internal/watcher"
+
+	"github.com/pancsta/sway-yasm/internal/types"
+	"github.com/pancsta/sway-yasm/internal/watcher"
 
 	"github.com/Difrex/gosway/ipc"
+	usrCmds "github.com/pancsta/sway-yasm/pkg/usr-cmds"
 	"github.com/samber/lo"
 )
 
@@ -47,32 +48,48 @@ type Daemon struct {
 	openedAt           time.Time
 	Autoconfig         bool
 	DefaultKeybindings bool
-	Out                *log.Logger
+	Logger             *log.Logger
+	// current mouse output
+	mouseInOutput string
 }
+
+// API compat check
+var _ usrCmds.DaemonAPI = &Daemon{}
 
 // ///// ///// /////
 // ///// DAEMON
 // ///// ///// /////
 
+func isClipmanRunning() bool {
+	out, err := exec.Command("pgrep", "-a", "wl-paste").Output()
+	if err != nil {
+		return false
+	}
+
+	return strings.Contains(string(out), "clipman")
+}
+
 func (d *Daemon) Start() {
 	var err error
 	d.ctx = context.Background()
+
 	d.winData = make(map[string]types.WindowData)
-	d.watcher, err = watcher.New(d.ctx)
+	d.watcher, err = watcher.New(d.ctx, d.Logger)
 	if err != nil {
-		d.Out.Fatalf("error: %s", err)
+		d.Logger.Fatalf("error: %s", err)
 	}
-	// TODO reconnect backoff?
+
+	// connect
 	conn, err := ipc.NewSwayConnection()
 	if err != nil {
-		d.Out.Fatal(err)
+		d.Logger.Fatal(err)
 	}
 	d.conn = conn
 
 	// read the existing tree to fill out the MRU list
 	tree, err := conn.GetTree()
 	if err != nil {
-		d.Out.Fatal("error:", err)
+		d.Logger.Fatal("error:", err)
 	}
 	for _, output := range tree.Nodes {
 		for _, workspace := range output.Nodes {
@@ -82,78 +99,47 @@ func (d *Daemon) Start() {
 		}
 	}
 
-	// set up the window layout
 	if d.Autoconfig {
-		msgs := []string{
-			`for_window [title="sway-yast"] floating enable`,
-			`for_window [title="sway-yast"] border none`,
-			`for_window [title="sway-yast"] sticky enable`,
-		}
-		err = d.SwayMsgs(msgs)
-		if err != nil {
-			d.Out.Fatal("error:", err)
-		}
+		err = d.autoconfig(err)
 	}
 
 	if d.DefaultKeybindings {
-
-		var msgs []string
-		if isDev() {
-			msgs = []string{
-				`bindsym alt+tab exec env YAST_DEBUG=1 sway-yast switcher`,
-				`bindsym mod4+o exec env YAST_DEBUG=1 sway-yast pick-space`,
-				`bindsym mod4+p exec env YAST_DEBUG=1 sway-yast pick-win`,
-				`bindsym mod4+d exec env YAST_DEBUG=1 sway-yast path`,
-			}
-		} else {
-			// TODO support $mod
-			msgs = []string{
-				`bindsym alt+tab exec sway-yast switcher`,
-				`bindsym mod4+o exec sway-yast pick-space`,
-				`bindsym mod4+p exec sway-yast pick-win`,
-				`bindsym mod4+d exec sway-yast path`,
-			}
-		}
-
-		err = d.SwayMsgs(msgs)
-		if err != nil {
-			d.Out.Fatal("error:", err)
-		}
+		err = d.defaultKeybinding(err)
 	}
 
-	// TODO reconnect backoff?
+	// subscribe to events
 	subCon, err := ipc.NewSwayConnection()
 	if err != nil {
-		d.Out.Fatal(err)
+		d.Logger.Fatal(err)
 	}
 
 	// Subscribe only to the window related events
 	_, err = subCon.SendCommand(ipc.IPC_SUBSCRIBE, `["window"]`)
 	if err != nil {
-		d.Out.Fatal(err)
+		d.Logger.Fatal(err)
 	}
 
 	// Listen for the events
 	s := subCon.Subscribe()
 	defer s.Close()
 
-	go rpcServer(d.Out, d)
+	go rpcServer(d.Logger, d)
 	d.watcher.Start()
-	log.Println("Listening for sway events...")
+	d.Logger.Printf("Listening for sway events...")
 
 	for {
 		select {
 
 		case event := <-s.Events:
 			if isLog() {
-				log.Printf("Event: %s #%d", event.Change, event.Container.ID)
+				d.Logger.Printf("Event: %s #%d", event.Change, event.Container.ID)
 			}
 
 			if event.Change == "focus" {
-				d.onFocus(&event.Container)
+				d.onFocus("focus", &event.Container)
 			}
 			if event.Change == "new" {
-				d.onFocus(&event.Container)
+				d.onFocus("new", &event.Container)
 			}
 			if event.Change == "close" {
 				d.onClose(&event.Container)
@@ -165,6 +151,60 @@ func (d *Daemon) Start() {
 			break
 		}
 	}
+}
+
+func (d *Daemon) defaultKeybinding(err error) error {
+	var msgs []string
+	if isDev() {
+		msgs = []string{
+			`bindsym alt+tab exec env YASM_DEBUG=1 sway-yasm switcher`,
+			`bindsym mod4+o exec env YASM_DEBUG=1 sway-yasm pick-space`,
+			`bindsym mod4+p exec env YASM_DEBUG=1 sway-yasm pick-win`,
+			`bindsym mod4+d exec env YASM_DEBUG=1 sway-yasm path`,
+			`bindsym alt+mod4+c exec env YASM_DEBUG=1 sway-yasm clipboard`,
+		}
+	} else {
+
+		// TODO support $mod, read config
+		msgs = []string{
+			`bindsym alt+tab exec sway-yasm switcher`,
+			`bindsym mod4+o exec sway-yasm pick-space`,
+			`bindsym mod4+p exec sway-yasm pick-win`,
+			`bindsym mod4+d exec sway-yasm path`,
+			`bindsym alt+mod4+c exec env sway-yasm clipboard`,
+		}
+	}
+
+	err = d.SwayMsgs(msgs)
+	if err != nil {
+		d.Logger.Fatal("error:", err)
+	}
+
+	return err
+}
+
+func (d *Daemon) autoconfig(err error) error {
+	msgs := []string{
+		`for_window [title="sway-yasm"] floating enable`,
+		`for_window [title="sway-yasm"] border none`,
+		`for_window [title="sway-yasm"] sticky enable`,
+	}
+	err = d.SwayMsgs(msgs)
+	if err != nil {
+		d.Logger.Fatal("error:", err)
+	}
+
+	if !isClipmanRunning() {
+		d.Logger.Printf("clipman not running, starting...")
+
+		err = d.SwayMsg("exec wl-paste -t text --watch clipman store " +
+				"--no-persist --max-items=200")
+		if err != nil {
+			d.Logger.Fatal("error:", err)
+		}
+	}
+
+	return err
 }
 
 // ListSpaces returns names of the current workspaces.
@@ -271,18 +311,24 @@ func (d *Daemon) onClose(c *ipc.Container) {
 	d.winFocus = lo.Without(d.winFocus, id)
 
 	// remove from winData
+	data := d.winData[id]
 	delete(d.winData, id)
+
+	// run user scripts
+	for _, l := range usrCmds.Listeners["close"] {
+		l(d, data)
+	}
 }
 
-func (d *Daemon) onFocus(con *ipc.Container) {
+func (d *Daemon) onFocus(event string, con *ipc.Container) {
 	// skip self
-	if con.Name == "sway-yast" {
+	if con.Name == "sway-yasm" {
 		return
 	}
 
 	space, err := d.conn.GetFocusedWorkspace()
 	if err != nil {
-		log.Printf("error: %s", err)
+		d.Logger.Printf("error: %s", err)
 	}
 
 	// update win data
@@ -312,7 +358,12 @@ func (d *Daemon) onFocus(con *ipc.Container) {
 	}
 	err = d.MouseToOutput(data.Output)
 	if err != nil {
-		log.Printf("error: %s", err)
+		d.Logger.Printf("error: %s", err)
+	}
+
+	// run user scripts
+	for _, l := range usrCmds.Listeners[event] {
+		l(d, data)
 	}
 }
 
@@ -358,7 +409,7 @@ func (d *Daemon) SwayMsg(msg string, args ...any) error {
 	cmd := fmt.Sprintf(msg, args...)
 
 	if isLog() {
-		log.Printf("swaymsg %s", cmd)
+		d.Logger.Printf("swaymsg %s", cmd)
 	}
 	_, err := d.conn.RunSwayCommand(cmd)
 	if err != nil {
@@ -369,11 +420,17 @@ func (d *Daemon) SwayMsg(msg string, args ...any) error {
 }
 
 func (d *Daemon) MouseToOutput(output string) error {
+	if d.mouseInOutput == output {
+		return nil
+	}
+
 	_, err := d.conn.RunSwayCommand(fmt.Sprintf(
 		`input 0:0:wlr_virtual_pointer_v1 map_to_output "%s"`, output))
 	if err != nil {
 		return err
 	}
+	d.mouseInOutput = output
+
 	return nil
 }
 
@@ -429,14 +486,14 @@ func (d *Daemon) spaceNameFromID(spaceID int) (string, error) {
 }
 
 func (d *Daemon) MoveSpaceToOutput(space, output string, focusedWinData types.WindowData) error {
-	log.Printf("moving space %s to %s", space, output)
+	d.Logger.Printf("moving space %s to %s", space, output)
 	msgs := []string{
 		fmt.Sprintf("workspace %s", space),
 		fmt.Sprintf("move workspace to output %s", output),
 	}
 	err := d.SwayMsgs(msgs)
 	if err != nil {
-		log.Printf("error: %s", err)
+		d.Logger.Printf("error: %s", err)
 		return err
 	}
 
@@ -445,13 +502,13 @@ func (d *Daemon) MoveSpaceToOutput(space, output string, focusedWinData types.Wi
 	// focus the original window back
 	err = d.FocusWinID(focusedWinData.ID)
 	if err != nil {
-		log.Printf("error: %s", err)
+		d.Logger.Printf("error: %s", err)
 		return err
 	}
 	if d.MouseFollowsFocus {
 		err = d.MouseToOutput(focusedWinData.Output)
 		if err != nil {
-			log.Printf("error: %s", err)
+			d.Logger.Printf("error: %s", err)
 			return err
 		}
 	}
@@ -459,16 +516,24 @@ func (d *Daemon) MoveSpaceToOutput(space, output string, focusedWinData types.Wi
 	return nil
 }
 
-func (d *Daemon) WinMatch(win types.WindowData, match string, matchApp, matchTitle bool) bool {
-	match = strings.ToLower(match)
-	if matchApp && strings.Contains(strings.ToLower(win.App), match) {
-		return true
-	}
-	if matchTitle && strings.Contains(strings.ToLower(win.Title), match) {
-		return true
-	}
+func (d *Daemon) WinMatchApp(win types.WindowData, match string) bool {
+	return strings.Contains(strings.ToLower(win.App), strings.ToLower(match))
+}
 
-	return false
+func (d *Daemon) WinMatchTitle(win types.WindowData, match string) bool {
+	return strings.Contains(strings.ToLower(win.Title), strings.ToLower(match))
+}
+
+func (d *Daemon) HandlerOnFocus(func(types.WindowData)) {
+	// TODO
+}
+
+func (d *Daemon) HandlerOnClose(func(types.WindowData)) {
+	// TODO
+}
+
+func (d *Daemon) HandlerOnNew(func(types.WindowData)) {
+	// TODO
 }
 
 // ///// ///// /////
@@ -513,11 +578,11 @@ func IsLightMode() bool {
 }
 
 func isLog() bool {
-	return os.Getenv("YAST_LOG") != ""
+	return os.Getenv("YASM_LOG") != ""
 }
 
 func isDev() bool {
-	return os.Getenv("YAST_DEBUG") != ""
+	return os.Getenv("YASM_DEBUG") != ""
 }
 
 // parseFlags parses a string of flags into a map

@@ -44,8 +44,5 @@ go.work
 
 # local dev
 /.dev
-/sway-yast
-/test.sh
-/data.txt
-
+/sway-yasm
 /dist

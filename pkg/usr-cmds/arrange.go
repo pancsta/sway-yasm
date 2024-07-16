@@ -22,7 +22,7 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 		var err error
 
 		// multi space apps
-		if d.WinMatch(win, "firefox", true, false) {
+		if d.WinMatchApp(win, "firefox") {
 			// skip if already there
 			if win.Workspace == spaces.dev || win.Workspace == spaces.blogic {
 				continue
@@ -36,7 +36,7 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 			firefox++
 		}
 
-		if d.WinMatch(win, "krusader", true, false) {
+		if d.WinMatchApp(win, "krusader") {
 			// skip if already there
 			if win.Workspace == spaces.dev || win.Workspace == spaces.blogic {
 				continue
@@ -51,29 +51,32 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 		}
 
 		// 1:dev
-		if d.WinMatch(win, "jetbrains", true, false) {
+		if d.WinMatchApp(win, "jetbrains") {
 			err = d.MoveWinToSpace(win.ID, spaces.dev)
 		}
-		if d.WinMatch(win, "jaeger", false, true) {
+		if d.WinMatchApp(win, "jaeger") {
 			err = d.MoveWinToSpace(win.ID, spaces.dev)
 		}
 
 		// 2:blogic
-		if d.WinMatch(win, "obsidian", true, false) {
+		if d.WinMatchApp(win, "obsidian") {
+			err = d.MoveWinToSpace(win.ID, spaces.blogic)
+		}
+		if d.WinMatchApp(win, "gmail") {
 			err = d.MoveWinToSpace(win.ID, spaces.blogic)
 		}
 
 		// 3:read
-		if d.WinMatch(win, "pocket", false, true) {
+		if d.WinMatchApp(win, "pocket") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
-		if d.WinMatch(win, "inoreader", false, true) {
+		if d.WinMatchApp(win, "inoreader") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
-		if d.WinMatch(win, "thunderbird", false, true) {
+		if d.WinMatchApp(win, "thunderbird") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
-		if d.WinMatch(win, "discord", false, true) {
+		if d.WinMatchApp(win, "discord") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
 

@@ -12,7 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	am "github.com/pancsta/asyncmachine-go/pkg/machine"
 	"github.com/pancsta/asyncmachine-go/pkg/telemetry"
-	ss "github.com/pancsta/sway-yast/internal/watcher/states"
+	ss "github.com/pancsta/sway-yasm/internal/watcher/states"
 )
 
 // PathWatcher watches all dirs in PATH for changes and returns a list
@@ -32,7 +32,7 @@ type PathWatcher struct {
 	lastRefresh map[string]time.Time
 }
 
-func New(ctx context.Context) (*PathWatcher, error) {
+func New(ctx context.Context, logger *log.Logger) (*PathWatcher, error) {
 	w := &PathWatcher{
 		EnvPath:     os.Getenv("PATH"),
 		dirCache:    make(map[string][]string),
@@ -60,7 +60,7 @@ func New(ctx context.Context) (*PathWatcher, error) {
 		return nil, err
 	}
 
-	w.Mach.SetTestLogger(log.Printf, am.LogChanges)
+	w.Mach.SetTestLogger(logger.Printf, am.LogChanges)
 	w.Mach.SetLogArgs(am.NewArgsMapper([]string{"dir"}, 0))
 	if isAMDebug() {
 		err = telemetry.TransitionsToDBG(w.Mach, "")
@@ -330,7 +330,7 @@ func (w *PathWatcher) Stop() {
 // ///// ///// /////
 
 func isAMDebug() bool {
-	return os.Getenv("YAST_DEBUG") == "2"
+	return os.Getenv("YASM_DEBUG") == "2"
 }
 
 func isExecutable(path string) (bool, error) {

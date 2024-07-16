@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	ss "github.com/pancsta/sway-yast/internal/watcher/states"
-	usrCmds "github.com/pancsta/sway-yast/pkg/usr-cmds"
+	ss "github.com/pancsta/sway-yasm/internal/watcher/states"
+	usrCmds "github.com/pancsta/sway-yasm/pkg/usr-cmds"
 )
 
 // RPC
@@ -28,6 +28,7 @@ type RPCArgs struct {
 	ExePath           string
 	UsrCmd            string
 	UsrArgs           string
+	Clipboard         string
 }
 
 // RemoteWinList is an RPC method
@@ -221,13 +222,44 @@ func (d *Daemon) RemoteWinToSpace(args RPCArgs, ret *string) error {
 	return nil
 }
 
+// RemoteCopy is an RPC method
+func (d *Daemon) RemoteCopy(args RPCArgs, ret *string) error {
+	log.Printf("RemoteCopy...")
+
+	// create a temp file
+	tmpFile, err := os.CreateTemp("", "sway-yasm-clip.txt")
+	if err != nil {
+		return err
+	}
+	// clean up with a delay
+	go func() {
+		time.Sleep(time.Second)
+		os.Remove(tmpFile.Name())
+	}()
+
+	// save clipboard as a file
+	if _, err := tmpFile.WriteString(args.Clipboard); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	tmpFile.Close()
+
+	// copy from file
+	err = d.SwayMsg(`exec "cat %s | wl-copy"`, tmpFile.Name())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func RemoteCall(method string, args RPCArgs) (string, error) {
 	// TODO timeout
 	log.Printf("rpcCall %s...", method)
 
 	var err error
 	url := rpcHost
-	if os.Getenv("YAST_DEBUG") != "" {
+	if os.Getenv("YASM_DEBUG") != "" {
 		url = rpcHostDbg
 	}
 
@@ -288,7 +320,7 @@ func rpcServer(out *log.Logger, server any) {
 		out.Fatal("register error:", err)
 	}
 	url := rpcHost
-	if os.Getenv("YAST_DEBUG") != "" {
+	if os.Getenv("YASM_DEBUG") != "" {
 		url = rpcHostDbg
 	}
 

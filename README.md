@@ -1,7 +1,10 @@
-# sway-yast
+# sway-yasm
 
-Sway **Y**et **A**nother **S**way **T**ab is a text-based window switcher which mimics alt+tab behavior (Most Recently Used order)
-for [Sway WM](https://github.com/swaywm/sway).
+Sway **Y**et **A**nother **S**way **M**anager is a daemon for managing [Sway WM](https://github.com/swaywm/sway) windows, workspaces, outputs, clipboard and PATH using [FZF](https://github.com/junegunn/fzf), both as a floating window and in the terminal.
+
+It tries to deliver all these features in one command, without any configuration, and with a single binary, so it can be deployed easily:
+
+- `sway-yasm daemon --autoconfig --default-keybindings`
 
 
 | Dark Mode                                | Light Mode                               |
@@ -9,39 +12,41 @@ for [Sway WM](https://github.com/swaywm/sway).
 | ![Dark mode](./assets/dark.png) | ![Light mode](./assets/light.png) |
 
 ```text
-$ sway-yast --help
+$ sway-yasm --help
+
 Usage:
-  sway-yast [flags]
-  sway-yast [command]
+  sway-yasm [flags]
+  sway-yasm [command]
 
 Available Commands:
   completion     Generate the autocompletion script for the specified shell
   config         Change the config of a running daemon process
   daemon         Start tracking focus in sway
-  fzf            Run fzf with a list of windows
-  fzf-path       Run fzf with a list of executable files from PATH
-  fzf-pick-space Run fzf with a list of workspaces to pick
-  fzf-pick-win   Run fzf with a list of windows to pick
+  fzf            Pure FZF versions of the switcher and pickers
   help           Help about any command
   mru-list       Print a list of MRU window IDs
   path           Show the +x files from PATH using foot
+  pick-clipboard Set the clipboard contents from the history
   pick-space     Show the workspace picker using foot
   pick-win       Show the window picker using foot
   switcher       Show the switcher window using foot
+  usr-cmd        Run a user command with a specific name and optional args
+  win-to-space   Move the current window to a specific workspace
 
 Flags:
-  -h, --help      help for sway-yast
+  -h, --help      help for sway-yasm
       --version   Print version and exit
 
-Use "sway-yast [command] --help" for more information about a command.
+Use "sway-yasm [command] --help" for more information about a command.
 ```
 
 ```text
-$ sway-yast daemon --help
+$ sway-yasm daemon --help
+
 Start tracking focus in sway
 
 Usage:
-  sway-yast daemon [flags]
+  sway-yasm daemon [flags]
 
 Flags:
       --autoconfig            Automatic configuration of layout (default true)
@@ -53,29 +58,36 @@ Flags:
 
 ## features
 
+- window / workspace management
+  - alt+tab / MRU order for windows
+  - move a workspace to the current output
+  - move a window to the current workspace
+- miscellaneous management
+  - run anything in your `PATH`
+  - copy from clipboard history using `clipman` and `wl-clipboard`
+- [user command files](#user-command-files) (scripts)
+  - resize-toggle
+  - arrange
+  - titlebar-toggle
 - daemon (IPC & RPC) architecture, filesystem-free
-- uses `fzf`, so it works in the terminal
-- renders a floating popup using `foot` (optional)
-- dark mode support (optional)<br />
+- uses `fzf`, so renders in the terminal
+- shows a floating window using `foot`
+- dark mode support<br />
   checks `gsettings get org.gnome.desktop.interface color-scheme`
-- 1-hand keystrokes
+- 1-hand keystrokes for window switching
 - [mouse follows focus](#mouse-follows-focus) mode (optional)
-- additional features (popups)
-    - move a workspace to the current output
-    - move a window to the current workspace
-    - run anything in your `PATH`
-- general MRU watcher via `mru-list` 
+- plain MRU list via `mru-list` for integrations
 
 ## usage
 
 1. Install using either<br />
-   - binary from [the releases page](https://github.com/pancsta/sway-yast/releases/latest)
-   - `go install github.com/pancsta/sway-yast@latest`
+   - binary from [the releases page](https://github.com/pancsta/sway-yasm/releases/latest)
+   - `go install github.com/pancsta/sway-yasm@latest`
    - `git clone && go mod tidy && go build`
 2. Start the daemon<br />
-   `sway-yast daemon --default-keystrokes`
+   `sway-yasm daemon --default-keystrokes`
 3. Use directly in the terminal (optional)<br />
-   `sway-yast fzf`
+   `sway-yasm fzf`
 4. Press `alt+tab`
 
 ## keystrokes
@@ -96,7 +108,7 @@ Switcher mode:
 - `ctrl+c` close the switcher
 - `a-z`, `0-9` fuzzy search
 
-Example - switch to the 3nd MRU window:
+Example - switch to the 3rd MRU window:
 
 - `alt+tab`
 - `tab`
@@ -113,32 +125,58 @@ Example - switch to Krusader by name:
 Various ways to get the default keybindings.
 
 ```bash
-$ sway-yast daemon --default-keybindings
+$ sway-yasm daemon --default-keybindings
 ```
 
 ```bash
 # shell
-swaymsg bindsym alt+tab exec sway-yast switcher
-swaymsg bindsym mod4+o exec sway-yast pick-space
-swaymsg bindsym mod4+p exec sway-yast pick-win
-swaymsg bindsym mod4+d exec sway-yast path
+swaymsg bindsym alt+tab exec sway-yasm switcher
+swaymsg bindsym mod4+o exec sway-yasm pick-space
+swaymsg bindsym mod4+p exec sway-yasm pick-win
+swaymsg bindsym mod4+d exec sway-yasm path
+swaymsg bbindsym mod4+alt+c exec sway-yasm clipboard
 ```
 
 ```text
 # config
-bindsym alt+tab exec sway-yast switcher
-bindsym $mod+o exec sway-yast pick-space
-bindsym $mod+p exec sway-yast pick-win
-bindsym $mod+d exec sway-yast path
+bindsym alt+tab exec sway-yasm switcher
+bindsym $mod+o exec sway-yasm pick-space
+bindsym $mod+p exec sway-yasm pick-win
+bindsym $mod+d exec sway-yasm path
+bindsym $mod+alt+c exec sway-yasm clipboard
+```
+
+### simulate blur events
+
+```text
+# passes `container move to workspace number` via sway-yasm
+
+bindsym $mod+Control+1 exec sway-yasm win-to-space 1
+bindsym $mod+Control+2 exec sway-yasm win-to-space 2
+bindsym $mod+Control+3 exec sway-yasm win-to-space 3
+bindsym $mod+Control+4 exec sway-yasm win-to-space 4
+bindsym $mod+Control+5 exec sway-yasm win-to-space 5
+bindsym $mod+Control+6 exec sway-yasm win-to-space 6
+bindsym $mod+Control+7 exec sway-yasm win-to-space 7
+bindsym $mod+Control+8 exec sway-yasm win-to-space 8
+bindsym $mod+Control+9 exec sway-yasm win-to-space 9
+bindsym $mod+Control+0 exec sway-yasm win-to-space 10
 ```
 
 ## mouse follows focus
 
 ```bash
-$ sway-yast daemon --mouse-follows-focus
+$ sway-yasm daemon --mouse-follows-focus
 ```
 
-Using `input map_to_output`, traps the relative cursor inside the currently focused output. Changing focus moves the cursor between outputs (thus the name). Useful for VNC screens on separate machines. When combined with [waycorner](https://github.com/AndreasBackx/waycorner), it creates a synergy-like effect.
+Using `input map_to_output`, the daemon traps the relative cursor inside the currently focused output. Changing focus moves the cursor between outputs (thus the name). Useful for VNC screens on separate machines. When combined with [waycorner](https://github.com/AndreasBackx/waycorner), it creates a synergy-like effect.
+
+Turning on/off:
+
+```bash
+$ sway-yasm config --mouse-follows-focus=false
+$ sway-yasm config --mouse-follows-focus=true
+```
 
 ### waycorner config example
 
@@ -160,7 +198,7 @@ description = ".*output 2.*"
 
 ## configuration
 
-See the [top config section in internal/pkg/daemon.go](internal/pkg/daemon.go), modify and `go build cmd/sway-yast/*.go`.
+There is a [top config section in daemon.go](internal/daemon/daemon.go) - modify and `./scripts/build.sh`. YAML config [is planned](#todo)...
 
 ## additional features (popups)
 
@@ -178,13 +216,64 @@ See the [top config section in internal/pkg/daemon.go](internal/pkg/daemon.go), 
 
 ## troubleshooting
 
-`env YAST_LOG=1 sway-yast`
+`env YASM_LOG=1 sway-yasm`
 
 ## development
 
-- `go build cmd/sway-yast/main.go`
-- `env YAST_LOG=1 YAST_DEBUG=1 ./main deamon`
-- `env YAST_LOG=1 YAST_DEBUG=1 ./main switcher`
+- `./scripts/build.sh`
+- `env YASM_LOG=1 YASM_DEBUG=1 ./sway-yasm deamon`
+- `env YASM_LOG=1 YASM_DEBUG=1 ./sway-yasm switcher`
+
+## user command files
+
+User command files provide a simple way to **script sway using Go within the daemon**, and can be fairly easily exchanged with others.
+
+- [resize-toggle](pkg/usr-cmds/resize-toggle.go)
+  - `sway-yasm usr-cmd resize-toggle`
+  - resizes a split to 10/50/90%
+- [arrange](pkg/usr-cmds/arrange.go)
+  - `sway-yasm usr-cmd arrange`
+  - arranges windows to workspaces
+- [titlebar-toggle](pkg/usr-cmds/titlebar-toggle.go)
+  - `sway-yasm usr-cmd titlebar-toggle`
+  - shows/hides window's titlebar
+
+Installing a user command file:
+
+```shell
+cp my-cmd.go pkg/usr-cmds
+./scripts/build.sh
+# run
+./sway-yasm deamon
+./sway-yasm usr-cmd my-cmd 123 -- -a --b=c
+```
+
+Modifying a user command file:
+
+See [pkg/usr-cmds/api.go](pkg/usr-cmds/api.go) for the API and [pkg/usr-cmds/template.go](pkg/usr-cmds/template.go) for a sample usage.
+
+```shell
+nano pkg/usr-cmds/arrange.go
+./scripts/build.sh
+# run
+./sway-yasm deamon
+./sway-yasm usr-cmd arrange
+```
+
+## todo
+
+- config file
+- user scripts in wasm
+- underscore windows from the current workspace
+- show on all screens (via wayland)
+- group fzf cmds under `sway-yasm fzf`
+- pick grouping containers with `pick-container`
+- `switcher --current-output-only`
+- `switcher --current-space-only`
+- `switcher --group-by-output`
+- tests (wink wink)
+- themes
+- reconnect logic
 
 ## changelog
 
@@ -195,3 +284,5 @@ See [CHANGELOG.md](CHANGELOG.md).
 - [applist.py](https://github.com/davxy/dotfiles/blob/main/_old/sway/applist.py)
 - [sway-fzfify](https://github.com/ldelossa/sway-fzfify)
 - [Difrex/gosway](https://github.com/Difrex/gosway)
+- [fzf](https://github.com/junegunn/fzf)
+- [contexts](https://contexts.co/)

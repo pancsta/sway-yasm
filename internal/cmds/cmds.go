@@ -10,94 +10,38 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pancsta/sway-yast/internal/daemon"
+	"github.com/lithammer/dedent"
+	"github.com/pancsta/sway-yasm/internal/daemon"
 	"github.com/spf13/cobra"
 	"runtime/debug"
 )
 
-// TODO gen fzf.yml for user overrides
-
-const (
-	shellFzf = `
-  fzf \
-    --prompt 'Switcher: ' \
-    --bind "load:pos(2)" \
-    --bind "change:pos(1)" \
-    --layout=reverse --info=hidden \
-    --bind=space:accept,tab:offset-down,btab:offset-up
-`
-	shellFzfPickWin = `
-  fzf \
-    --prompt 'Move which window to this workspace?: ' \
-    --layout=reverse --info=hidden \
-    --bind=space:accept,tab:offset-down,btab:offset-up
-`
-	shellFzfPickSpace = `
-  fzf \
-    --prompt 'Move which workspace to this output?: ' \
-    --layout=reverse --info=hidden \
-    --bind=space:accept,tab:offset-down,btab:offset-up
-`
-	shellFzfPath = `
-  fzf \
-    --prompt 'Run: ' \
-    --layout=reverse --info=hidden \
-    --bind=space:accept,tab:offset-down,btab:offset-up
-`
-	// junegunn/seoul256.vim (light)
-	shellFzfLight = ` \
-    --color=bg+:#D9D9D9,bg:#E1E1E1,border:#C8C8C8,spinner:#719899,hl:#719872,fg:#616161,header:#719872,info:#727100,pointer:#E12672,marker:#E17899,fg+:#616161,preview-bg:#D9D9D9,prompt:#0099BD,hl+:#719899
-`
-	shellSwitcher = `
-    foot --title "sway-yast" sway-yast fzf
-`
-	shellPickWin = `
-    foot --title "sway-yast" sway-yast fzf-pick-win
-`
-	shellPickSpace = `
-    foot --title "sway-yast" sway-yast fzf-pick-space
-`
-	shellPath = `
-    foot --title "sway-yast" sway-yast fzf-path
-`
-)
+var clipboardSanitize = regexp.MustCompile(`\s+`)
 
 // ///// ///// /////
 // ///// COBRAS
 // ///// ///// /////
 
-func GetCmds(out *log.Logger) []*cobra.Command {
-	var list []*cobra.Command
+func mouseFollowsFocusFlag(cmd *cobra.Command) {
+	cmd.Flags().Bool("mouse-follows-focus", false,
+		"Calls 'input ... map_to_output OUTPUT' on each focus")
+}
+
+func GetRootCmd(logger *log.Logger) *cobra.Command {
 
 	cmdDaemon := &cobra.Command{
 		Use:   "daemon",
 		Short: "Start tracking focus in sway",
-		Run: func(cmd *cobra.Command, args []string) {
-			mouseFollow, _ := cmd.Flags().GetBool("mouse-follows-focus")
-			autoconfig, _ := cmd.Flags().GetBool("autoconfig")
-			defaultKeybindings, _ := cmd.Flags().GetBool("default-keybindings")
-			d := &daemon.Daemon{
-				MouseFollowsFocus:  mouseFollow,
-				Autoconfig:         autoconfig,
-				DefaultKeybindings: defaultKeybindings,
-				Out:                out,
-			}
-			if mouseFollow {
-				d.Out.Println("Mouse follows focus enabled")
-			}
-			d.Start()
-		},
+		Run:   cmdDaemon(logger),
 	}
 
-	// TODO extract
-	cmdDaemon.Flags().Bool("mouse-follows-focus", false,
-		"Calls 'input ... map_to_output OUTPUT' on each focus")
+	mouseFollowsFocusFlag(cmdDaemon)
 	cmdDaemon.Flags().Bool("autoconfig", true,
-		"Automatic configuration of layout")
+		"Automatically configure the layout and start clipman")
 	cmdDaemon.Flags().Bool("default-keybindings", false,
 		"Add default keybindings")
 
-	cmdList := &cobra.Command{
+	cmdMRUList := &cobra.Command{
 		Use:   "mru-list",
 		Short: "Print a list of MRU window IDs",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -105,42 +49,61 @@ func GetCmds(out *log.Logger) []*cobra.Command {
 		},
 	}
 
-	cmdFzf := &cobra.Command{
-		Use:   "fzf",
+	cmdFzfSwitcher := &cobra.Command{
+		Use:   "switcher",
 		Short: "Run fzf with a list of windows",
-		Run:   CmdFzf,
+		Run:   CmdFzfSwitcher,
 	}
 
 	cmdFzfPickWin := &cobra.Command{
-		Use:   "fzf-pick-win",
+		Use:   "pick-win",
 		Short: "Run fzf with a list of windows to pick",
 		Run:   CmdFzfPickWin,
 	}
 
 	cmdFzfPickSpace := &cobra.Command{
-		Use:   "fzf-pick-space",
+		Use:   "pick-space",
 		Short: "Run fzf with a list of workspaces to pick",
 		Run:   CmdFzfPickSpace,
 	}
 
 	cmdFzfPath := &cobra.Command{
-		Use:   "fzf-path",
+		Use:   "path",
 		Short: "Run fzf with a list of executable files from PATH",
-		Run:   CmdFzfPath,
+		Long: "Run fzf with a list of executable files from PATH, with all the " +
+				"dirs being watched for changes.",
+		Run: CmdFzfPath,
 	}
+
+	cmdFzfPickClip := &cobra.Command{
+		Use:   "clipboard",
+		Short: "Run fzf with your clipboard history and copy the selection",
+		Run:   CmdFzfClipboard,
+	}
+
+	cmdFzf := &cobra.Command{
+		Use:   "fzf",
+		Short: "Pure FZF versions of the switcher and pickers",
+		Long: "Pure FZF versions of the switcher and pickers, which allows them " +
+				"to be rendered directly in the terminal.",
+	}
+
+	cmdFzf.AddCommand(cmdFzfSwitcher, cmdFzfPickWin, cmdFzfPickSpace, cmdFzfPath, cmdFzfPickClip)
 
 	cmdUserCmd := &cobra.Command{
 		Use:     "usr-cmd",
 		Short:   "Run a user command with a specific name and optional args",
-		Example: "sway-yast usr-cmd resize-toggle -- -f=1",
+		Example: "sway-yasm usr-cmd resize-toggle -- -f=1",
 		Run:     CmdUsrCmd,
 		Args:    cobra.ExactArgs(1),
 	}
 
 	cmdSwitcher := &cobra.Command{
 		Use:   "switcher",
-		Short: "Show the switcher window using foot",
-		Run:   CmdSwitcher,
+		Short: "Show the window switcher window using foot",
+		Long: "Show the window switcher window using foot in the Most Recently " +
+				"Used order. The list can be traversed by pressing Tab or arrows.",
+		Run: CmdSwitcher,
 	}
 
 	cmdPickWin := &cobra.Command{
@@ -158,7 +121,9 @@ func GetCmds(out *log.Logger) []*cobra.Command {
 	cmdPath := &cobra.Command{
 		Use:   "path",
 		Short: "Show the +x files from PATH using foot",
-		Run:   CmdPath,
+		Long: "Show the +x files from PATH using foot, with all the dirs being " +
+				"watched for changes.",
+		Run: CmdPath,
 	}
 
 	cmdWinToSpace := &cobra.Command{
@@ -173,15 +138,42 @@ func GetCmds(out *log.Logger) []*cobra.Command {
 		Short: "Change the config of a running daemon process",
 		Run:   CmdConfig,
 	}
-	// TODO extract
-	cmdConfig.Flags().Bool("mouse-follows-focus", false,
-		"Calls 'input ... map_to_output OUTPUT' on each focus")
+	mouseFollowsFocusFlag(cmdConfig)
 
-	list = append(list, cmdDaemon, cmdList, cmdFzf, cmdSwitcher, cmdFzfPickWin,
-		cmdPickWin, cmdConfig, cmdFzfPickSpace, cmdPickSpace, cmdPath, cmdFzfPath,
-		cmdUserCmd, cmdWinToSpace)
+	cmdClipboard := &cobra.Command{
+		Use:   "clipboard",
+		Short: "Set the clipboard contents from the history",
+		Run:   CmdClipboard,
+	}
 
-	return list
+	var rootCmd = &cobra.Command{
+		Use: "sway-yasm",
+		Run: CmdRoot,
+	}
+	rootCmd.AddCommand(cmdDaemon, cmdMRUList, cmdSwitcher, cmdPickWin, cmdConfig,
+		cmdPickSpace, cmdPath, cmdUserCmd, cmdWinToSpace, cmdClipboard, cmdFzf)
+	rootCmd.Flags().Bool("version", false,
+		"Print version and exit")
+
+	return rootCmd
+}
+
+func cmdDaemon(logger *log.Logger) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		mouseFollow, _ := cmd.Flags().GetBool("mouse-follows-focus")
+		autoconfig, _ := cmd.Flags().GetBool("autoconfig")
+		defaultKeybindings, _ := cmd.Flags().GetBool("default-keybindings")
+		d := &daemon.Daemon{
+			MouseFollowsFocus:  mouseFollow,
+			Autoconfig:         autoconfig,
+			DefaultKeybindings: defaultKeybindings,
+			Logger:             logger,
+		}
+		if mouseFollow {
+			d.Logger.Println("Mouse follows focus enabled")
+		}
+		d.Start()
+	}
 }
 
 // ///// ///// /////
@@ -231,103 +223,14 @@ func CmdPath(_ *cobra.Command, _ []string) {
 	}
 }
 
-// ///// ///// /////
-// ///// FZF COMMANDS
-// ///// ///// /////
-
-func CmdFzf(_ *cobra.Command, _ []string) {
-	// req the daemon
-	input, err := daemon.RemoteCall("Daemon.RemoteFZFList", daemon.RPCArgs{})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
+func CmdClipboard(_ *cobra.Command, _ []string) {
+	if !shouldOpen() {
+		log.Fatal("fzf error: already open")
 	}
 
-	// run fzf
-	result, err := fzf(shellFzf, &input)
+	_, err := run(shellClipboard)
 	if err != nil {
-		log.Fatalf("fzf error: %s", err)
-	}
-
-	// match the window's ID at the end of the line
-	winID, err := matchWinID(result)
-	if err != nil {
-		log.Fatalf("error: %s", err)
-	}
-
-	// focus the window
-	_, err = daemon.RemoteCall("Daemon.RemoteFocusWinID", daemon.RPCArgs{WinID: winID})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
-	}
-}
-
-func CmdFzfPickWin(_ *cobra.Command, _ []string) {
-	// req the daemon
-	input, err := daemon.RemoteCall("Daemon.RemoteFZFListPickWin", daemon.RPCArgs{})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
-	}
-	// run fzf
-	result, err := fzf(shellFzfPickWin, &input)
-	if err != nil {
-		log.Fatalf("fzf error: %s", err)
-	}
-
-	// match the window's ID at the end of the line
-	winID, err := matchWinID(result)
-	if err != nil {
-		log.Fatalf("error: %s", err)
-	}
-
-	// move the window to the current workspace
-	_, err = daemon.RemoteCall("Daemon.RemoteMoveWinToSpace", daemon.RPCArgs{WinID: winID})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
-	}
-}
-
-func CmdFzfPickSpace(_ *cobra.Command, _ []string) {
-	// req the daemon
-	list, err := daemon.RemoteCall("Daemon.RemoteFZFListPickSpace", daemon.RPCArgs{})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
-	}
-
-	// run fzf to pick the workspace
-	result, err := fzf(shellFzfPickSpace, &list)
-	if err != nil {
-		log.Fatalf("fzf error: %s", err)
-	}
-
-	// move the workspace to the current output
-	_, err = daemon.RemoteCall("Daemon.RemoteMoveSpaceToOutput", daemon.RPCArgs{
-		Workspace: strings.Trim(result, " \n"),
-	})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
-	}
-}
-
-func CmdFzfPath(_ *cobra.Command, _ []string) {
-	// req the daemon
-	list, err := daemon.RemoteCall("Daemon.RemoteGetPathFiles", daemon.RPCArgs{})
-	if err != nil {
-		log.Fatalf("rpc error: %s", err)
-	}
-
-	// run fzf
-	result, err := fzf(shellFzfPath, &list)
-	if err != nil {
-		log.Fatalf("fzf error: %s", err)
-	}
-
-	// return the picked exe
-	log.Printf("path: %s", result)
-	result, err = daemon.RemoteCall("Daemon.RemoteExec", daemon.RPCArgs{
-		ExePath: result,
-	})
-	if err != nil {
-		log.Fatalf("error: cant run %s", result)
+		log.Fatalf("foot error: %s", err)
 	}
 }
 
@@ -346,8 +249,17 @@ func CmdRoot(cmd *cobra.Command, _ []string) {
 		fmt.Println(build.Main.Version)
 		os.Exit(0)
 	} else {
-
-		fmt.Println("Yet Another Sway Tab\n\nUsage:\n$ sway-yast daemon\n$ sway-yast --help")
+		fmt.Println(fmt.Sprintf(dedent.Dedent(strings.Trim(`
+		sway-yasm: SWAY Yet Another Sway Manager
+		
+		Daemon for managing Sway WM windows, workspaces, outputs, clipboard and PATH
+		using FZF, both as a floating window and in the terminal.
+		
+		Usage:
+		
+		$ sway-yasm daemon --autoconfig --default-keybindings
+		$ sway-yasm switcher
+		$ sway-yasm help`, " \n"))))
 	}
 }
 
@@ -395,7 +307,8 @@ func CmdConfig(cmd *cobra.Command, _ []string) {
 	if result != "" {
 		log.Fatal("config error")
 	}
-	fmt.Println("Config updated")
+	fmt.Println("Config updated:")
+	fmt.Printf("- mouse follows focus: %t\n", mouseFollow)
 	// TODO print out the current config (as yaml)
 }
 
@@ -403,12 +316,21 @@ func CmdConfig(cmd *cobra.Command, _ []string) {
 // ///// HELPERS
 // ///// ///// /////
 
-// TODO docs
-func matchWinID(result string) (int, error) {
+func matchSuffixID(result string) (int, error) {
 	re := regexp.MustCompile(`\((\d+)\)\s*$`)
 	match := re.FindStringSubmatch(result)
 	if len(match) == 0 {
-		return 0, fmt.Errorf("no winID match")
+		return 0, fmt.Errorf("no (ID) match")
+	}
+
+	return strconv.Atoi(match[1])
+}
+
+func matchPrefixID(result string) (int, error) {
+	re := regexp.MustCompile(`^\s*\((\d+)\)`)
+	match := re.FindStringSubmatch(result)
+	if len(match) == 0 {
+		return 0, fmt.Errorf("no (ID) match")
 	}
 
 	return strconv.Atoi(match[1])
@@ -425,7 +347,7 @@ func shouldOpen() bool {
 	return shouldOpen == "true"
 }
 
-func fzf(cmd string, input *string) (string, error) {
+func runFZF(cmd string, input *string) (string, error) {
 	shell := os.Getenv("SHELL")
 	if len(shell) == 0 {
 		shell = "sh"
@@ -454,5 +376,6 @@ func run(cmd string) (string, error) {
 		shell = "sh"
 	}
 	out, err := exec.Command(shell, "-c", cmd).Output()
+
 	return string(out), err
 }
