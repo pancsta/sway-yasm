@@ -151,9 +151,6 @@ func CmdFzfClipboard(_ *cobra.Command, _ []string) {
 		shell = "sh"
 	}
 	cmdClipman := "clipman show-history"
-	if daemon.IsLightMode() {
-		cmdClipman = strings.TrimRight(cmdClipman, " \n") + shellFzfLight
-	}
 
 	// get json
 	histJSON, err := exec.Command(shell, "-c", cmdClipman).Output()
