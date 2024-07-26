@@ -2,14 +2,17 @@ package usrCmds
 
 func init() {
 	register("template", Template)
-	// onFocus(func(d DaemonAPI, win types.WindowData) {
+	// onFocus(func(api DaemonAPI, win types.WindowData) {
 	// 	fmt.Println("template.focus")
 	// })
-	// onClose(func(d DaemonAPI, win types.WindowData) {
+	// onClose(func(api DaemonAPI, win types.WindowData) {
 	// 	fmt.Println("template.close")
 	// })
-	// onNew(func(d DaemonAPI, win types.WindowData) {
+	// onNew(func(api DaemonAPI, win types.WindowData) {
 	// 	fmt.Println("template.new")
+	// })
+	// onCopy(func(api DaemonAPI, text string) string {
+	// 	fmt.Println("template.copy")
 	// })
 }
 

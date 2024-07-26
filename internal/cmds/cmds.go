@@ -172,6 +172,7 @@ func cmdDaemon(logger *log.Logger) func(cmd *cobra.Command, args []string) {
 		if mouseFollow {
 			d.Logger.Println("Mouse follows focus enabled")
 		}
+
 		d.Start()
 	}
 }
@@ -375,6 +376,7 @@ func run(cmd string) (string, error) {
 	if len(shell) == 0 {
 		shell = "sh"
 	}
+	cmd = strings.Trim(cmd, " \n")
 	out, err := exec.Command(shell, "-c", cmd).Output()
 
 	return string(out), err

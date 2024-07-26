@@ -237,8 +237,14 @@ func (d *Daemon) RemoteCopy(args RPCArgs, ret *string) error {
 		os.Remove(tmpFile.Name())
 	}()
 
+	// pass the clipboard through listeners
+	contents := args.Clipboard
+	for _, fn := range usrCmds.Listeners["clipboard"] {
+		contents = fn.ClipListenerFunc(d, contents)
+	}
+
 	// save clipboard as a file
-	if _, err := tmpFile.WriteString(args.Clipboard); err != nil {
+	if _, err := tmpFile.WriteString(contents); err != nil {
 		tmpFile.Close()
 		return err
 	}

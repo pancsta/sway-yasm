@@ -198,7 +198,7 @@ func (d *Daemon) autoconfig(err error) error {
 		d.Logger.Printf("clipman not running, starting...")
 
 		err = d.SwayMsg("exec wl-paste -t text --watch clipman store " +
-				"--no-persist --max-items=200")
+			"--no-persist --max-items=200")
 		if err != nil {
 			d.Logger.Fatal("error:", err)
 		}
@@ -279,7 +279,7 @@ func findPathToRoot(node *ipc.Node, targetID int64, path []*ipc.Node) (bool, []*
 
 func (d *Daemon) parseNode(con *ipc.Node, space, output string) {
 	isWin := con.Layout != "splith" && con.Layout != "splitv" &&
-			con.Layout != "tabbed" && con.Layout != "stacked"
+		con.Layout != "tabbed" && con.Layout != "stacked"
 
 	if isWin {
 		id := strconv.Itoa(int(con.ID))
@@ -316,11 +316,13 @@ func (d *Daemon) onClose(c *ipc.Container) {
 
 	// run user scripts
 	for _, l := range usrCmds.Listeners["close"] {
-		l(d, data)
+		l.WinListenerFunc(d, data)
 	}
 }
 
 func (d *Daemon) onFocus(event string, con *ipc.Container) {
+	// TODO event enum
+
 	// skip self
 	if con.Name == "sway-yasm" {
 		return
@@ -363,7 +365,7 @@ func (d *Daemon) onFocus(event string, con *ipc.Container) {
 
 	// run user scripts
 	for _, l := range usrCmds.Listeners[event] {
-		l(d, data)
+		l.WinListenerFunc(d, data)
 	}
 }
 

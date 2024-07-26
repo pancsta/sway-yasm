@@ -24,16 +24,15 @@ type DaemonAPI interface {
 }
 
 type UserFunc func(DaemonAPI, map[string]string) (string, error)
-type ListenerFunc func(DaemonAPI, types.WindowData)
+type ListenerFuncs struct {
+	WinListenerFunc  WinListenerFunc
+	ClipListenerFunc ClipListenerFunc
+}
+type WinListenerFunc func(DaemonAPI, types.WindowData)
+type ClipListenerFunc func(DaemonAPI, string) string
 
 var Registered map[string]UserFunc
-var Listeners map[string][]ListenerFunc
-
-func init() {
-	if Listeners == nil {
-		Listeners = make(map[string][]ListenerFunc)
-	}
-}
+var Listeners map[string][]*ListenerFuncs
 
 // register registers a new user command function.
 func register(name string, fn UserFunc) {
@@ -44,26 +43,32 @@ func register(name string, fn UserFunc) {
 }
 
 // listener registers a new event listener.
-func listener(event string, fn ListenerFunc) {
+func listener(event string, fn *ListenerFuncs) {
 	if Listeners == nil {
-		Listeners = make(map[string][]ListenerFunc)
+		Listeners = make(map[string][]*ListenerFuncs)
 	}
 	Listeners[event] = append(Listeners[event], fn)
 }
 
-// register registers a new user command function.
-func onClose(fn ListenerFunc) {
-	listener("close", fn)
+// onClose registers a window "close" event listener.
+func onClose(fn WinListenerFunc) {
+	listener("close", &ListenerFuncs{WinListenerFunc: fn})
 }
 
-// register registers a new user command function.
-func onFocus(fn ListenerFunc) {
-	listener("focus", fn)
+// onFocus registers a window "focus" event listener.
+func onFocus(fn WinListenerFunc) {
+	listener("focus", &ListenerFuncs{WinListenerFunc: fn})
 }
 
-// register registers a new user command function.
-func onNew(fn ListenerFunc) {
-	listener("new", fn)
+// onNew registers a window "new" event listener.
+func onNew(fn WinListenerFunc) {
+	listener("new", &ListenerFuncs{WinListenerFunc: fn})
+}
+
+// onCopy registers a clipboard event listener, triggered when a history item is
+// copied.
+func onCopy(fn ClipListenerFunc) {
+	listener("copy", &ListenerFuncs{ClipListenerFunc: fn})
 }
 
 // inspect prints the value to the daemon's log.
