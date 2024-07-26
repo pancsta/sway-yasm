@@ -4,12 +4,12 @@ Sway **Y**et **A**nother **S**way **M**anager is a daemon for managing [Sway WM]
 
 It tries to deliver all these features in one command, without any configuration, and with a single binary, so it can be deployed easily:
 
-- `sway-yasm daemon --autoconfig --default-keybindings`
+- `sway-yasm daemon --default-keybindings`
 
-
-| Dark Mode                                | Light Mode                               |
-|------------------------------------------|------------------------------------------|
-| ![Dark mode](./assets/dark.png) | ![Light mode](./assets/light.png) |
+| ![switcher](assets/switcher.dark.png#gh-dark-mode-only)![switcher](assets/switcher.light.png#gh-light-mode-only)         | ![path](assets/path.dark.png#gh-dark-mode-only)![path](assets/path.light.png#gh-light-mode-only)                 |
+|--------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| ![pick-space](assets/pick-space.dark.png#gh-dark-mode-only)![pick-space](assets/pick-space.light.png#gh-light-mode-only) | ![pick-win](assets/pick-win.dark.png#gh-dark-mode-only)![pick-win](assets/pick-win.light.png#gh-light-mode-only) |
+| ![clipboard](assets/clipboard.dark.png#gh-dark-mode-only)![clipboard](assets/clipboard.light.png#gh-light-mode-only)     |                                                                                                                  |
 
 ```text
 $ sway-yasm --help
@@ -49,11 +49,10 @@ Usage:
   sway-yasm daemon [flags]
 
 Flags:
-      --autoconfig            Automatic configuration of layout (default true)
+      --autoconfig            Automatically configure the layout and start clipman (default true)
       --default-keybindings   Add default keybindings
   -h, --help                  help for daemon
       --mouse-follows-focus   Calls 'input ... map_to_output OUTPUT' on each focus
-
 ```
 
 ## features
@@ -198,21 +197,10 @@ description = ".*output 2.*"
 
 ## configuration
 
-There is a [top config section in daemon.go](internal/daemon/daemon.go) - modify and `./scripts/build.sh`. YAML config [is planned](#todo)...
+[No yaml yet](#todo), but check headings of these files:
 
-## additional features (popups)
-
-### move a workspace to the current output
-
-![move workspace](assets/move-workspace.png)
-
-### move a window to the current workspace
-
-![move window](assets/move-window.png)
-
-### run anything in your `PATH`
-
-![path runner](assets/path-runner.png)
+- [daemon.go](internal/daemon/daemon.go)
+- [fzf.go](internal/cmds/fzf.go)
 
 ## troubleshooting
 
@@ -262,7 +250,7 @@ nano pkg/usr-cmds/arrange.go
 
 ## todo
 
-- config file
+- yaml config file
 - user scripts in wasm
 - underscore windows from the current workspace
 - show on all screens (via wayland)
