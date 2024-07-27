@@ -1,6 +1,6 @@
 # sway-yasm
 
-Sway **Y**et **A**nother **S**way **M**anager is a daemon for managing [Sway WM](https://github.com/swaywm/sway) windows, workspaces, outputs, clipboard and PATH using [FZF](https://github.com/junegunn/fzf), both as a floating window and in the terminal.
+Sway's **y**et **a**nother **s**way **m**anager is a daemon for managing [Sway WM's](https://github.com/swaywm/sway) windows, workspaces, outputs, clipboard and PATH using [FZF](https://github.com/junegunn/fzf) - both as floating foot windows and in the terminal.
 
 It tries to deliver all these features in one command, without any configuration, and with a single binary, so it can be deployed easily:
 
@@ -85,9 +85,9 @@ Flags:
    - `git clone && go mod tidy && go build`
 2. Start the daemon<br />
    `sway-yasm daemon --default-keystrokes`
-3. Use directly in the terminal (optional)<br />
-   `sway-yasm fzf`
-4. Press `alt+tab`
+3. Press `alt+tab`
+4. term: `sway-yasm fzf switcher`
+5. help: `sway-yasm --help`
 
 ## keystrokes
 
