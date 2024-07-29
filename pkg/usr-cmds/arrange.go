@@ -54,7 +54,7 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 		if d.WinMatchApp(win, "jetbrains") {
 			err = d.MoveWinToSpace(win.ID, spaces.dev)
 		}
-		if d.WinMatchApp(win, "jaeger") {
+		if d.WinMatchTitle(win, "jaeger") {
 			err = d.MoveWinToSpace(win.ID, spaces.dev)
 		}
 
@@ -62,15 +62,15 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 		if d.WinMatchApp(win, "obsidian") {
 			err = d.MoveWinToSpace(win.ID, spaces.blogic)
 		}
-		if d.WinMatchApp(win, "gmail") {
+		if d.WinMatchTitle(win, "gmail") {
 			err = d.MoveWinToSpace(win.ID, spaces.blogic)
 		}
 
 		// 3:read
-		if d.WinMatchApp(win, "pocket") {
+		if d.WinMatchTitle(win, "pocket") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
-		if d.WinMatchApp(win, "inoreader") {
+		if d.WinMatchTitle(win, "inoreader") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
 		if d.WinMatchApp(win, "thunderbird") {

@@ -254,7 +254,6 @@ nano pkg/usr-cmds/arrange.go
 - user scripts in wasm
 - underscore windows from the current workspace
 - show on all screens (via wayland)
-- group fzf cmds under `sway-yasm fzf`
 - pick grouping containers with `pick-container`
 - `switcher --current-output-only`
 - `switcher --current-space-only`
