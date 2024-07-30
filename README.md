@@ -4,12 +4,94 @@ Sway's **y**et **a**nother **s**way **m**anager is a daemon for managing [Sway W
 
 It tries to deliver all these features in one command, without any configuration, and with a single binary, so it can be deployed easily:
 
-- `sway-yasm daemon --default-keybindings`
+>`sway-yasm daemon --default-keybindings`
 
-| ![switcher](assets/switcher.dark.png#gh-dark-mode-only)![switcher](assets/switcher.light.png#gh-light-mode-only)         | ![path](assets/path.dark.png#gh-dark-mode-only)![path](assets/path.light.png#gh-light-mode-only)                 |
-|--------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| ![pick-space](assets/pick-space.dark.png#gh-dark-mode-only)![pick-space](assets/pick-space.light.png#gh-light-mode-only) | ![pick-win](assets/pick-win.dark.png#gh-dark-mode-only)![pick-win](assets/pick-win.light.png#gh-light-mode-only) |
-| ![clipboard](assets/clipboard.dark.png#gh-dark-mode-only)![clipboard](assets/clipboard.light.png#gh-light-mode-only)     |                                                                                                                  |
+<table>
+
+  <tr>
+    <td align="center">switcher</td>
+    <td align="center">path</td>
+  </tr>
+  <tr>
+    <td align="center">
+        <img src="assets/switcher.dark.png#gh-dark-mode-only" alt="switcher"/>
+        <img src="assets/switcher.light.png#gh-light-mode-only" alt="switcher"/>
+    </td>
+    <td align="center">
+        <img src="assets/path.dark.png#gh-dark-mode-only" alt="path"/>
+        <img src="assets/path.light.png#gh-light-mode-only" alt="path"/>
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center">pick-space</td>
+    <td align="center">pick-win</td>
+  </tr>
+  <tr>
+    <td align="center">
+        <img src="assets/pick-space.dark.png#gh-dark-mode-only" alt="pick-space"/>
+        <img src="assets/pick-space.light.png#gh-light-mode-only" alt="pick-space"/>
+    </td>
+    <td align="center">
+        <img src="assets/pick-win.dark.png#gh-dark-mode-only" alt="pick-win"/>
+        <img src="assets/pick-win.light.png#gh-light-mode-only" alt="pick-win"/>
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center">clipboard</td>
+    <td align="center"></td>
+  </tr>
+  <tr>
+    <td align="center">
+        <img src="assets/clipboard.dark.png#gh-dark-mode-only" alt="clipboard"/>
+        <img src="assets/clipboard.light.png#gh-light-mode-only" alt="clipboard"/>
+    </td>
+    <td align="center">
+    </td>
+  </tr>
+</table>
+
+## install
+
+Install using one of the following ways:
+
+- binary from [the releases page](https://github.com/pancsta/sway-yasm/releases/latest)
+- `go install github.com/pancsta/sway-yasm@latest`
+- `git clone; cd; go mod tidy; ./scripts/build`
+
+## features
+
+- window / workspace management
+  - alt+tab / MRU order for windows
+  - move a workspace to the current output
+  - move a window to the current workspace
+- miscellaneous management
+  - run anything in your `PATH`
+  - copy from clipboard history using `clipman` and `wl-clipboard`
+- [user command files](#user-command-files) (scripts)
+  - resize-toggle
+  - arrange
+  - titlebar-toggle
+- daemon (IPC & RPC) architecture, filesystem-free
+- uses `fzf`, so renders in the terminal
+- shows a floating window using `foot`
+- dark mode support<br />
+  checks `gsettings get org.gnome.desktop.interface color-scheme`
+- 1-hand keystrokes for window switching
+- [mouse follows focus](#mouse-follows-focus) mode (optional)
+- plain MRU list via `mru-list` for integrations
+
+## usage
+
+1. Start the daemon<br />
+   `sway-yasm daemon --default-keystrokes`
+2. press: `alt+tab`
+3. term: `sway-yasm fzf switcher`
+4. term: `sway-yasm --help`
+5. see: [default keystrokes](#default-keystrokes)
+
+## help
 
 ```text
 $ sway-yasm --help
@@ -55,41 +137,9 @@ Flags:
       --mouse-follows-focus   Calls 'input ... map_to_output OUTPUT' on each focus
 ```
 
-## features
-
-- window / workspace management
-  - alt+tab / MRU order for windows
-  - move a workspace to the current output
-  - move a window to the current workspace
-- miscellaneous management
-  - run anything in your `PATH`
-  - copy from clipboard history using `clipman` and `wl-clipboard`
-- [user command files](#user-command-files) (scripts)
-  - resize-toggle
-  - arrange
-  - titlebar-toggle
-- daemon (IPC & RPC) architecture, filesystem-free
-- uses `fzf`, so renders in the terminal
-- shows a floating window using `foot`
-- dark mode support<br />
-  checks `gsettings get org.gnome.desktop.interface color-scheme`
-- 1-hand keystrokes for window switching
-- [mouse follows focus](#mouse-follows-focus) mode (optional)
-- plain MRU list via `mru-list` for integrations
-
-## usage
-
-1. Install using either<br />
-   - binary from [the releases page](https://github.com/pancsta/sway-yasm/releases/latest)
-   - `go install github.com/pancsta/sway-yasm@latest`
-   - `git clone && go mod tidy && go build`
-2. Start the daemon<br />
-   `sway-yasm daemon --default-keystrokes`
-3. Press `alt+tab`
-4. term: `sway-yasm fzf switcher`
-5. help: `sway-yasm --help`
-
 ## keystrokes
+
+### window switcher
 
 Normal mode:
 
@@ -148,7 +198,8 @@ bindsym $mod+alt+c exec sway-yasm clipboard
 ### simulate blur events
 
 ```text
-# passes `container move to workspace number` via sway-yasm
+# pass `container move to workspace number` via sway-yasm
+# as IPC doesnt offer the blur event
 
 bindsym $mod+Control+1 exec sway-yasm win-to-space 1
 bindsym $mod+Control+2 exec sway-yasm win-to-space 2
@@ -273,3 +324,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 - [Difrex/gosway](https://github.com/Difrex/gosway)
 - [fzf](https://github.com/junegunn/fzf)
 - [contexts](https://contexts.co/)
+]()
