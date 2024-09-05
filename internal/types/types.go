@@ -1,6 +1,6 @@
 package types
 
-import "github.com/Difrex/gosway/ipc"
+import "github.com/pancsta/gosway/ipc"
 
 type WindowData struct {
 	ID        int

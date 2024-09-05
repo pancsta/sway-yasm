@@ -1,9 +1,10 @@
 package usrCmds
 
 import (
-	"github.com/Difrex/gosway/ipc"
-	"github.com/pancsta/sway-yasm/internal/types"
 	"log"
+
+	"github.com/pancsta/gosway/ipc"
+	"github.com/pancsta/sway-yasm/internal/types"
 )
 
 type DaemonAPI interface {

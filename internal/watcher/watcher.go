@@ -239,6 +239,7 @@ func (w *PathWatcher) RefreshingState(e *am.Event) {
 			return // expired
 		}
 
+		// TODO returns deleted files on delete event
 		executables, err := listExecutables(dir)
 		if err != nil {
 			e.Machine.AddErr(err)

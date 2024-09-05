@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pancsta/gosway/ipc"
+	"github.com/samber/lo"
+
 	"github.com/pancsta/sway-yasm/internal/types"
 	"github.com/pancsta/sway-yasm/internal/watcher"
-
-	"github.com/Difrex/gosway/ipc"
 	usrCmds "github.com/pancsta/sway-yasm/pkg/usr-cmds"
-	"github.com/samber/lo"
 )
 
 // CONFIG TODO file
@@ -148,7 +148,7 @@ func (d *Daemon) Start() {
 		case err := <-s.Errors:
 			// TODO reconnect / backoff
 			log.Println("Error:", err)
-			break
+			os.Exit(1)
 		}
 	}
 }

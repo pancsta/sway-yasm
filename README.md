@@ -57,8 +57,8 @@ It tries to deliver all these features in one command, without any configuration
 Install using one of the following ways:
 
 - binary from [the releases page](https://github.com/pancsta/sway-yasm/releases/latest)
-- `go install github.com/pancsta/sway-yasm@latest`
-- `git clone; cd; go mod tidy; ./scripts/build`
+- `go install github.com/pancsta/sway-yasm/cmd/sway-yasm@latest`
+- `git clone; cd; ./scripts/build`
 
 ## features
 
@@ -159,13 +159,13 @@ Switcher mode:
 
 Example - switch to the 3rd MRU window:
 
-- `alt+tab`
+- `alt+tab` (release)
 - `tab`
 - `space`
 
 Example - switch to Krusader by name:
 
-- `alt+tab`
+- `alt+tab` (release)
 - `k`, `r`, `u`
 - `enter`
 

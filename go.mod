@@ -2,14 +2,11 @@ module github.com/pancsta/sway-yasm
 
 go 1.22.3
 
-// TODO PR
-replace github.com/Difrex/gosway/ipc => github.com/pancsta/gosway/ipc v0.0.0-20240714161203-b47bb358f535
-
 require (
-	github.com/Difrex/gosway/ipc v0.0.0-20240312143858-20214f4c38d6
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/pancsta/asyncmachine-go v0.6.1
+	github.com/pancsta/gosway/ipc v0.0.0-20240905082428-317fdc2bcf9c
 	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.0
 )

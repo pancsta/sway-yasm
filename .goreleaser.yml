@@ -1,6 +1,6 @@
 builds:
   - id: "sway-yasm"
-    main: "./cmd/sway-yasm/main.go"
+    main: "./cmd/sway-yasm/"
     binary: "sway-yasm"
     goos:
       - linux
