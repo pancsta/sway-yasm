@@ -7,13 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
 	"github.com/lithammer/dedent"
 	"github.com/pancsta/sway-yasm/internal/daemon"
 	"github.com/spf13/cobra"
-	"runtime/debug"
 )
 
 var clipboardSanitize = regexp.MustCompile(`\s+`)
@@ -95,7 +95,7 @@ func GetRootCmd(logger *log.Logger) *cobra.Command {
 		Short:   "Run a user command with a specific name and optional args",
 		Example: "sway-yasm usr-cmd resize-toggle -- -f=1",
 		Run:     CmdUsrCmd,
-		Args:    cobra.ExactArgs(1),
+		// Args:    cobra.ExactArgs(1),
 	}
 
 	cmdSwitcher := &cobra.Command{
@@ -178,7 +178,9 @@ func cmdDaemon(logger *log.Logger) func(cmd *cobra.Command, args []string) {
 }
 
 // ///// ///// /////
+
 // ///// TERM WRAPPER COMMANDS
+
 // ///// ///// /////
 
 // TODO open on all visible outputs, as screen session clients
@@ -236,7 +238,9 @@ func CmdClipboard(_ *cobra.Command, _ []string) {
 }
 
 // ///// ///// /////
+
 // ///// OTHER CMDS
+
 // ///// ///// /////
 
 func CmdRoot(cmd *cobra.Command, _ []string) {
@@ -314,7 +318,9 @@ func CmdConfig(cmd *cobra.Command, _ []string) {
 }
 
 // ///// ///// /////
+
 // ///// HELPERS
+
 // ///// ///// /////
 
 func matchSuffixID(result string) (int, error) {

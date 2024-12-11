@@ -57,7 +57,9 @@ type Daemon struct {
 var _ usrCmds.DaemonAPI = &Daemon{}
 
 // ///// ///// /////
+
 // ///// DAEMON
+
 // ///// ///// /////
 
 func isClipmanRunning() bool {
@@ -539,7 +541,9 @@ func (d *Daemon) HandlerOnNew(func(types.WindowData)) {
 }
 
 // ///// ///// /////
+
 // ///// UTILS
+
 // ///// ///// /////
 
 func unshiftAndTrim(slice []string, id string) ([]string, []string) {
