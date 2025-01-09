@@ -78,18 +78,18 @@ Install using one of the following ways:
 - shows a floating window using `foot`
 - dark mode support<br />
   checks `gsettings get org.gnome.desktop.interface color-scheme`
-- 1-hand keystrokes for window switching
+- 1-hand keybindings for window switching
 - [mouse follows focus](#mouse-follows-focus) mode (optional)
 - plain MRU list via `mru-list` for integrations
 
 ## usage
 
 1. Start the daemon<br />
-   `sway-yasm daemon --default-keystrokes`
+   `sway-yasm daemon --default-keybindings`
 2. press: `alt+tab`
 3. term: `sway-yasm fzf switcher`
 4. term: `sway-yasm --help`
-5. see: [default keystrokes](#default-keystrokes)
+5. see: [default keybindings](#default-keybindings)
 
 ## help
 
@@ -137,7 +137,7 @@ Flags:
       --mouse-follows-focus   Calls 'input ... map_to_output OUTPUT' on each focus
 ```
 
-## keystrokes
+## keybindings
 
 ### window switcher
 
@@ -169,7 +169,7 @@ Example - switch to Krusader by name:
 - `k`, `r`, `u`
 - `enter`
 
-### default keystrokes
+### default keybindings
 
 Various ways to get the default keybindings.
 
