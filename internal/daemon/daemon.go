@@ -509,13 +509,11 @@ func (d *Daemon) MoveSpaceToOutput(space, output string, focusedWinData types.Wi
 		d.Logger.Printf("error: %s", err)
 		return err
 	}
-	if d.MouseFollowsFocus {
 		err = d.MouseToOutput(focusedWinData.Output)
 		if err != nil {
 			d.Logger.Printf("error: %s", err)
 			return err
 		}
-	}
 
 	return nil
 }
