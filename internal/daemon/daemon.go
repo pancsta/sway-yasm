@@ -116,7 +116,7 @@ func (d *Daemon) Start() {
 	}
 
 	// Subscribe only to the window related events
-	_, err = subCon.SendCommand(ipc.IPC_SUBSCRIBE, `["window"]`)
+	_, err = subCon.SendCommand(ipc.IPC_SUBSCRIBE, `["window", "workspace", "input"]`)
 	if err != nil {
 		d.Logger.Fatal(err)
 	}
@@ -134,7 +134,20 @@ func (d *Daemon) Start() {
 
 		case event := <-s.Events:
 			if isLog() {
-				d.Logger.Printf("Event: %s #%d", event.Change, event.Container.ID)
+				d.Logger.Printf("Event: %s #%d (%s)", event.Change, event.Container.ID,
+					event.Container.Type)
+			}
+
+			// non-window container (divider) focused
+			if event.Container.ID == 0 {
+				space, err := conn.GetFocusedWorkspace()
+				if err != nil {
+					d.Logger.Printf("Err: %s", err)
+					continue
+				}
+				d.onSpaceFocus("focus", space)
+
+				continue
 			}
 
 			if event.Change == "focus" {
@@ -400,6 +413,9 @@ func (d *Daemon) FocusWinID(id int) error {
 
 func (d *Daemon) SwayMsgs(msgs []string) error {
 	for _, msg := range msgs {
+		if isLog() {
+			fmt.Println(msg)
+		}
 		_, err := d.conn.RunSwayCommand(msg)
 		if err != nil {
 			return err
@@ -489,11 +505,13 @@ func (d *Daemon) spaceNameFromID(spaceID int) (string, error) {
 	return "", errors.New("ws not found")
 }
 
-func (d *Daemon) MoveSpaceToOutput(space, output string, focusedWinData types.WindowData) error {
+func (d *Daemon) MoveSpaceToOutput(
+	space, output string, focusedWinData types.WindowData,
+) error {
 	d.Logger.Printf("moving space %s to %s", space, output)
 	msgs := []string{
-		fmt.Sprintf("workspace %s", space),
-		fmt.Sprintf("move workspace to output %s", output),
+		fmt.Sprintf(`workspace "%s"`, space),
+		fmt.Sprintf(`move workspace to output "%s"`, output),
 	}
 	err := d.SwayMsgs(msgs)
 	if err != nil {
@@ -509,11 +527,11 @@ func (d *Daemon) MoveSpaceToOutput(space, output string, focusedWinData types.Wi
 		d.Logger.Printf("error: %s", err)
 		return err
 	}
-		err = d.MouseToOutput(focusedWinData.Output)
-		if err != nil {
-			d.Logger.Printf("error: %s", err)
-			return err
-		}
+	err = d.MouseToOutput(focusedWinData.Output)
+	if err != nil {
+		d.Logger.Printf("error: %s", err)
+		return err
+	}
 
 	return nil
 }
@@ -536,6 +554,10 @@ func (d *Daemon) HandlerOnClose(func(types.WindowData)) {
 
 func (d *Daemon) HandlerOnNew(func(types.WindowData)) {
 	// TODO
+}
+
+func (d *Daemon) onSpaceFocus(s string, space *ipc.Workspace) {
+	d.MouseToOutput(space.Output)
 }
 
 // ///// ///// /////
