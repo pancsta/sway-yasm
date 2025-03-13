@@ -9,7 +9,9 @@ import (
 
 type DaemonAPI interface {
 	FocusedWindow() types.WindowData
+	WindowById(id string) types.WindowData
 	ListSpaces(skipOutputs []string) ([]string, error)
+	ListOutputSpaces(output string) ([]string, error)
 	GetWinTreePath(id int) ([]*ipc.Node, error)
 	PrevWindow() types.WindowData
 	SwayMsgs(msgs []string) error
@@ -20,8 +22,12 @@ type DaemonAPI interface {
 	ListWindows() map[string]types.WindowData
 	MouseToOutput(output string) error
 	FocusWinID(id int) error
+	FocusSpace(name, output string) error
+	// Outputs return an ordered list of attached outputs.
+	Outputs() []string
 	WinMatchApp(win types.WindowData, match string) bool
 	WinMatchTitle(win types.WindowData, match string) bool
+	MruList() []string
 }
 
 type UserFunc func(DaemonAPI, map[string]string) (string, error)

@@ -176,7 +176,7 @@ func (d *Daemon) RemoteSetConfig(args RPCArgs, _ *string) error {
 	d.MouseFollowsFocus = args.MouseFollowsFocus
 	if !d.MouseFollowsFocus {
 		// set the pointer to all the outputs
-		_, err := d.conn.RunSwayCommand(`input 0:0:wlr_virtual_pointer_v1 map_to_output "*"`)
+		_, err := d.conn.RunSwayCommand(`input "*" map_to_output "*"`)
 		if err != nil {
 			return err
 		}
@@ -308,11 +308,12 @@ func (d *Daemon) RemoteUsrCmd(rpcArgs RPCArgs, rpcRet *string) error {
 	// err
 	if err != nil {
 		log.Printf("error: %s", err)
+		log.Printf("%s", cmdRet)
 		return err
 	}
 
 	// ret
-	log.Printf("cmdRet: %s", cmdRet)
+	log.Printf("%s", cmdRet)
 	*rpcRet = cmdRet
 	return nil
 }

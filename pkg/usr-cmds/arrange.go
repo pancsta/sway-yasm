@@ -9,25 +9,21 @@ func init() {
 }
 
 // ArrangeWindows arranges the windows into desired workspaces.
+// TODO mark windows
 func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
-	krusader := 0
 	firefox := 0
+	chromium := 0
 
-	spaces := struct{ dev, blogic, read string }{
-		"1:dev", "2:blogic", "3:read",
+	spaces := struct{ dev, blogic, read, sidecar1, sidecar2 string }{
+		"1:dev", "2:blogic", "3:read", "5:siecar1", "5:siecar2",
 	}
 
 	for _, win := range d.ListWindows() {
 		log.Printf(`Arrage: #%d:%s "%s"`, win.ID, win.App, win.Title)
 		var err error
 
-		// multi space apps
+		// firefox on space 1 and 2
 		if d.WinMatchApp(win, "firefox") {
-			// skip if already there
-			if win.Workspace == spaces.dev || win.Workspace == spaces.blogic {
-				continue
-			}
-
 			if firefox == 0 {
 				err = d.MoveWinToSpace(win.ID, spaces.dev)
 			} else {
@@ -36,25 +32,21 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 			firefox++
 		}
 
-		if d.WinMatchApp(win, "krusader") {
-			// skip if already there
-			if win.Workspace == spaces.dev || win.Workspace == spaces.blogic {
-				continue
-			}
-
-			if krusader == 0 {
-				err = d.MoveWinToSpace(win.ID, spaces.dev)
-			} else {
+		// one chromium per space
+		if d.WinMatchApp(win, "chromium") && !d.WinMatchTitle(win, "gmail") {
+			switch chromium {
+			case 0:
+				err = d.MoveWinToSpace(win.ID, spaces.sidecar1)
+			case 1:
 				err = d.MoveWinToSpace(win.ID, spaces.blogic)
+			case 2:
+				err = d.MoveWinToSpace(win.ID, spaces.read)
 			}
-			krusader++
+			chromium++
 		}
 
 		// 1:dev
-		if d.WinMatchApp(win, "jetbrains") {
-			err = d.MoveWinToSpace(win.ID, spaces.dev)
-		}
-		if d.WinMatchTitle(win, "jaeger") {
+		if d.WinMatchApp(win, "jetbrains-go") {
 			err = d.MoveWinToSpace(win.ID, spaces.dev)
 		}
 
@@ -67,10 +59,13 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 		}
 
 		// 3:read
-		if d.WinMatchTitle(win, "pocket") {
+		if d.WinMatchTitle(win, "slack") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
-		if d.WinMatchTitle(win, "inoreader") {
+		if d.WinMatchTitle(win, "element") {
+			err = d.MoveWinToSpace(win.ID, spaces.read)
+		}
+		if d.WinMatchTitle(win, "telegram") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
 		}
 		if d.WinMatchApp(win, "thunderbird") {
@@ -78,6 +73,19 @@ func ArrangeWindows(d DaemonAPI, _ map[string]string) (string, error) {
 		}
 		if d.WinMatchApp(win, "discord") {
 			err = d.MoveWinToSpace(win.ID, spaces.read)
+		}
+
+		// 5:sidecar1
+		if d.WinMatchApp(win, "jetbrains-id") {
+			err = d.MoveWinToSpace(win.ID, spaces.sidecar1)
+		}
+		if d.WinMatchApp(win, "krusader") {
+			err = d.MoveWinToSpace(win.ID, spaces.sidecar1)
+		}
+
+		// 6:sidecar2
+		if d.WinMatchApp(win, "jetbrains-py") {
+			err = d.MoveWinToSpace(win.ID, spaces.sidecar2)
 		}
 
 		if err != nil {

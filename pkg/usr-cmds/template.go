@@ -24,8 +24,8 @@ func Template(d DaemonAPI, args map[string]string) (string, error) {
 		return "", err
 	}
 
-	p("Focused window: %d", win.Title)
-	p("Focused workspace: %d", path[0].Name)
+	p("Focused window: %s", win.Title)
+	p("Focused workspace: %s", path[0].Name)
 	inspect(args)
 
 	return "cli output", d.SwayMsg(`exec echo %d`, win.ID)

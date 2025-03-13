@@ -301,6 +301,7 @@ nano pkg/usr-cmds/arrange.go
 
 ## todo
 
+- key-value store for user commands
 - yaml config file
 - user scripts in wasm
 - underscore windows from the current workspace
@@ -312,6 +313,7 @@ nano pkg/usr-cmds/arrange.go
 - tests (wink wink)
 - themes
 - reconnect logic
+- refac the daaemon to asyncmachine
 
 ## changelog
 

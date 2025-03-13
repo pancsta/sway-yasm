@@ -327,7 +327,9 @@ func (w *PathWatcher) Stop() {
 }
 
 // ///// ///// /////
+
 // ///// HELPERS
+
 // ///// ///// /////
 
 func isAMDebug() bool {

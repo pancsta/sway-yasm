@@ -35,14 +35,12 @@ const (
 
 // config end
 
-type WindowFocus []string
-
 type Daemon struct {
 	conn               *ipc.SwayConnection
 	MouseFollowsFocus  bool
 	watcher            *watcher.PathWatcher
 	ctx                context.Context
-	winFocus           WindowFocus
+	winFocus           []string
 	winData            map[string]types.WindowData
 	openedByPID        int
 	openedAt           time.Time
@@ -50,7 +48,9 @@ type Daemon struct {
 	DefaultKeybindings bool
 	Logger             *log.Logger
 	// current mouse output
-	mouseInOutput string
+	mouseInOutput     string
+	outputs           []string
+	skipMouseToOutput bool
 }
 
 // API compat check
@@ -69,6 +69,21 @@ func isClipmanRunning() bool {
 	}
 
 	return strings.Contains(string(out), "clipman")
+}
+
+func (d *Daemon) Outputs() []string {
+	outputs, err := d.conn.GetOutputs()
+	if err != nil {
+		d.Logger.Print("error:", err)
+		return []string{}
+	}
+
+	var ret = []string{}
+	for _, output := range outputs {
+		ret = append(ret, output.Name)
+	}
+
+	return ret
 }
 
 func (d *Daemon) Start() {
@@ -94,6 +109,7 @@ func (d *Daemon) Start() {
 		d.Logger.Fatal("error:", err)
 	}
 	for _, output := range tree.Nodes {
+		d.outputs = append(d.outputs, output.Name)
 		for _, workspace := range output.Nodes {
 			for _, container := range workspace.Nodes {
 				d.parseNode(&container, workspace.Name, output.Name)
@@ -243,6 +259,26 @@ func (d *Daemon) ListSpaces(skipOutputs []string) ([]string, error) {
 	return ret, nil
 }
 
+func (d *Daemon) ListOutputSpaces(name string) ([]string, error) {
+	tree, err := d.conn.GetTree()
+	if err != nil {
+		return nil, err
+	}
+	var ret = []string{}
+	for _, output := range tree.Nodes {
+		if name != output.Name {
+			continue
+		}
+		for _, workspace := range output.Nodes {
+			if workspace.Name == "__i3_scratch" {
+				continue
+			}
+			ret = append(ret, workspace.Name)
+		}
+	}
+	return ret, nil
+}
+
 // GetWinTreePath returns the nodes between tree root and the passed window ID,
 // starting with the workspace
 func (d *Daemon) GetWinTreePath(id int) ([]*ipc.Node, error) {
@@ -267,11 +303,14 @@ func (d *Daemon) GetWinTreePath(id int) ([]*ipc.Node, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, errors.New("no tree path (floating?)")
 }
 
-// findPathToRoot searches for the target node and returns the path from the target to the root
-func findPathToRoot(node *ipc.Node, targetID int64, path []*ipc.Node) (bool, []*ipc.Node) {
+// findPathToRoot searches for the target node and returns the path from the
+// target to the root
+func findPathToRoot(
+	node *ipc.Node, targetID int64, path []*ipc.Node,
+	) (bool, []*ipc.Node) {
 	// Add the current node to the path
 	path = append([]*ipc.Node{node}, path...)
 
@@ -369,10 +408,6 @@ func (d *Daemon) onFocus(event string, con *ipc.Container) {
 		delete(d.winData, id)
 	}
 
-	// move the pointer
-	if !d.MouseFollowsFocus {
-		return
-	}
 	err = d.MouseToOutput(data.Output)
 	if err != nil {
 		d.Logger.Printf("error: %s", err)
@@ -402,8 +437,37 @@ func (d *Daemon) PrevWindow() types.WindowData {
 	return d.winData[id]
 }
 
+// TODO return []int
+func (d *Daemon) MruList() []string {
+	return d.winFocus
+}
+
+func (d *Daemon) WindowById(id string) types.WindowData {
+	return d.winData[id]
+}
+
 func (d *Daemon) FocusWinID(id int) error {
 	err := d.SwayMsg(`[con_id=%d] focus`, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Daemon) FocusSpace(name, output string) error {
+	// move mouse before focusing
+	// TODO prevent moving focus to the current (soon previous) output back,
+	//  during an ongoing mouse movement
+	if d.MouseFollowsFocus {
+		err := d.MouseToOutput(output)
+		if err != nil {
+			return err
+		}
+		d.skipMouseToOutput = true
+	}
+
+	err := d.SwayMsg(`workspace %s`, name)
 	if err != nil {
 		return err
 	}
@@ -440,12 +504,24 @@ func (d *Daemon) SwayMsg(msg string, args ...any) error {
 }
 
 func (d *Daemon) MouseToOutput(output string) error {
+	// disabled
+	if !d.MouseFollowsFocus {
+		return nil
+	}
+
+	// suspended
+	if d.skipMouseToOutput {
+		d.skipMouseToOutput = false
+		return nil
+	}
+
+	// no-op
 	if d.mouseInOutput == output {
 		return nil
 	}
 
 	_, err := d.conn.RunSwayCommand(fmt.Sprintf(
-		`input 0:0:wlr_virtual_pointer_v1 map_to_output "%s"`, output))
+		`input "*" map_to_output "%s"`, output))
 	if err != nil {
 		return err
 	}

@@ -71,7 +71,7 @@ func GetRootCmd(logger *log.Logger) *cobra.Command {
 		Use:   "path",
 		Short: "Run fzf with a list of executable files from PATH",
 		Long: "Run fzf with a list of executable files from PATH, with all the " +
-				"dirs being watched for changes.",
+			"dirs being watched for changes.",
 		Run: CmdFzfPath,
 	}
 
@@ -85,7 +85,7 @@ func GetRootCmd(logger *log.Logger) *cobra.Command {
 		Use:   "fzf",
 		Short: "Pure FZF versions of the switcher and pickers",
 		Long: "Pure FZF versions of the switcher and pickers, which allows them " +
-				"to be rendered directly in the terminal.",
+			"to be rendered directly in the terminal.",
 	}
 
 	cmdFzf.AddCommand(cmdFzfSwitcher, cmdFzfPickWin, cmdFzfPickSpace, cmdFzfPath, cmdFzfPickClip)
@@ -102,7 +102,7 @@ func GetRootCmd(logger *log.Logger) *cobra.Command {
 		Use:   "switcher",
 		Short: "Show the window switcher window using foot",
 		Long: "Show the window switcher window using foot in the Most Recently " +
-				"Used order. The list can be traversed by pressing Tab or arrows.",
+			"Used order. The list can be traversed by pressing Tab or arrows.",
 		Run: CmdSwitcher,
 	}
 
@@ -122,7 +122,7 @@ func GetRootCmd(logger *log.Logger) *cobra.Command {
 		Use:   "path",
 		Short: "Show the +x files from PATH using foot",
 		Long: "Show the +x files from PATH using foot, with all the dirs being " +
-				"watched for changes.",
+			"watched for changes.",
 		Run: CmdPath,
 	}
 
