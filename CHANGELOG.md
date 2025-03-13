@@ -1,6 +1,6 @@
 ## v0.2.3
 
-- feat: add next-vnc use command
+- feat: add next-vnc user command
 - fix: fix titlebar-toggle for floating windows
 - fix: fix disabling mouse-follows-focused
 - fix: fix move focus to a divider (via workspace focus)
