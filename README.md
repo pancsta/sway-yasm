@@ -276,6 +276,9 @@ User command files provide a simple way to **script sway using Go within the dae
 - [titlebar-toggle](pkg/usr-cmds/titlebar-toggle.go)
   - `sway-yasm usr-cmd titlebar-toggle`
   - shows/hides window's titlebar
+- [next-vnc](pkg/usr-cmds/next-vnc.go)
+  - `sway-yasm usr-cmd next-vnc --back`
+  - focus the next VNC output with a connected client
 
 Installing a user command file:
 
