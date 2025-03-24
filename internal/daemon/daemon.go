@@ -310,7 +310,7 @@ func (d *Daemon) GetWinTreePath(id int) ([]*ipc.Node, error) {
 // target to the root
 func findPathToRoot(
 	node *ipc.Node, targetID int64, path []*ipc.Node,
-	) (bool, []*ipc.Node) {
+) (bool, []*ipc.Node) {
 	// Add the current node to the path
 	path = append([]*ipc.Node{node}, path...)
 
@@ -342,8 +342,10 @@ func (d *Daemon) parseNode(con *ipc.Node, space, output string) {
 			Output:    output,
 			Workspace: space,
 			Title:     con.Name,
-			App:       con.WindowProperties.Class,
-			Rect:      con.Rect,
+			// TODO add marks to IPC
+			// Mark:      parseMarks(con.Marks),
+			App:  con.WindowProperties.Class,
+			Rect: con.Rect,
 		}
 		if con.AppID != nil {
 			data.App = con.AppID.(string)
@@ -394,6 +396,7 @@ func (d *Daemon) onFocus(event string, con *ipc.Container) {
 		Output:    space.Output,
 		Workspace: space.Name,
 		Title:     con.Name,
+		Mark:      parseMarks(con),
 		Rect:      con.Rect,
 		App:       con.WindowProperties.Class,
 	}
@@ -620,6 +623,10 @@ func (d *Daemon) WinMatchTitle(win types.WindowData, match string) bool {
 	return strings.Contains(strings.ToLower(win.Title), strings.ToLower(match))
 }
 
+func (d *Daemon) WinMatchMark(win types.WindowData, match string) bool {
+	return strings.Contains(strings.ToLower(win.Mark), strings.ToLower(match))
+}
+
 func (d *Daemon) HandlerOnFocus(func(types.WindowData)) {
 	// TODO
 }
@@ -713,4 +720,15 @@ func parseFlags(input string) map[string]string {
 	}
 
 	return flagMap
+}
+
+func parseMarks(con *ipc.Container) string {
+	var mark string
+	for _, m := range con.Marks {
+		if ms, ok := m.(string); ok {
+			mark = ms
+			break
+		}
+	}
+	return mark
 }

@@ -27,6 +27,7 @@ type DaemonAPI interface {
 	Outputs() []string
 	WinMatchApp(win types.WindowData, match string) bool
 	WinMatchTitle(win types.WindowData, match string) bool
+	WinMatchMark(win types.WindowData, match string) bool
 	MruList() []string
 }
 

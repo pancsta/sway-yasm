@@ -9,5 +9,6 @@ type WindowData struct {
 	Workspace string
 	Title     string
 	App       string
+	Mark      string
 	Rect      ipc.Rect
 }
