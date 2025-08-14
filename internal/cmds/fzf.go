@@ -13,10 +13,11 @@ import (
 )
 
 // TODO gen fzf.yml for user overrides
+// TODO common fzf to prevent repetition of --no-sort etc
 
 const (
 	shellFzf = `
-  fzf \
+  fzf --no-sort \
     --prompt 'Switcher: ' \
     --bind "load:pos(2)" \
     --bind "change:pos(1)" \
@@ -24,25 +25,25 @@ const (
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
 	shellFzfPickWin = `
-  fzf \
+  fzf --no-sort \
     --prompt 'Move which window to this workspace?: ' \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
 	shellFzfClipboard = `
-  fzf \
+  fzf --no-sort \
     --prompt 'Copy which one to the clipboard?: ' \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
 	shellFzfPickSpace = `
-  fzf \
+  fzf --no-sort \
     --prompt 'Move which workspace to this output?: ' \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
 	shellFzfPath = `
-  fzf \
+  fzf --no-sort \
     --prompt 'Run: ' \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
