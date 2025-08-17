@@ -216,9 +216,7 @@ func (d *Daemon) defaultKeybinding(err error) error {
 
 func (d *Daemon) autoconfig(err error) error {
 	msgs := []string{
-		`for_window [title="sway-yasm"] floating enable`,
-		`for_window [title="sway-yasm"] border none`,
-		`for_window [title="sway-yasm"] sticky enable`,
+		`for_window [title="sway-yasm"] floating enable, border none, sticky enable`,
 	}
 	err = d.SwayMsgs(msgs)
 	if err != nil {

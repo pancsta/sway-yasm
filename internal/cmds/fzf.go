@@ -3,13 +3,14 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pancsta/sway-yasm/internal/daemon"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/exec"
 	"slices"
 	"strings"
+
+	"github.com/pancsta/sway-yasm/internal/daemon"
+	"github.com/spf13/cobra"
 )
 
 // TODO gen fzf.yml for user overrides
@@ -68,7 +69,9 @@ const (
 )
 
 // ///// ///// /////
+
 // ///// FZF COMMANDS
+
 // ///// ///// /////
 
 func CmdFzfSwitcher(_ *cobra.Command, _ []string) {

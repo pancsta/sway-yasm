@@ -25,6 +25,7 @@ type DaemonAPI interface {
 	FocusSpace(name, output string) error
 	// Outputs return an ordered list of attached outputs.
 	Outputs() []string
+	// TODO extract stateless methods to a utils pkg instead?
 	WinMatchApp(win types.WindowData, match string) bool
 	WinMatchTitle(win types.WindowData, match string) bool
 	WinMatchMark(win types.WindowData, match string) bool

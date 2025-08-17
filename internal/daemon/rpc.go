@@ -54,11 +54,16 @@ func (d *Daemon) RemoteFZFListSwitcher(_ RPCArgs, reply *string) error {
 
 		data := d.winData[id]
 		display := strings.Replace(data.Output, "HEADLESS-", "H-", 1)
+		mark := data.Mark
+		if mark != "" {
+			mark = "[" + mark + "] "
+		}
 		// ret += fmt.Sprintf("%-*s (%s) %s| %-*s | %-*s | %-*s \n",
-		ret += fmt.Sprintf("%-*s | %-*s | %-*s | %-*s (%s) \n",
+		ret += fmt.Sprintf("%-*s | %-*s | %-*s | %s%-*s (%s) \n",
 			lenDisplay, maxLen(display, lenDisplay),
 			lenSpace, maxLen(data.Workspace, lenSpace),
 			lenApp, maxLen(data.App, lenApp),
+			mark,
 			lenTitle, maxLen(data.Title, lenTitle),
 			id,
 		)
