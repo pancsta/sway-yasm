@@ -19,7 +19,9 @@ import (
 var clipboardSanitize = regexp.MustCompile(`\s+`)
 
 // ///// ///// /////
+
 // ///// COBRAS
+
 // ///// ///// /////
 
 func mouseFollowsFocusFlag(cmd *cobra.Command) {

@@ -16,11 +16,9 @@ import (
 // TODO common fzf to prevent repetition of --no-sort etc
 
 const (
-	shellFzf = `
+	shellFzfSwitcher = `
   fzf --no-sort \
     --prompt 'Switcher: ' \
-    --bind "load:pos(2)" \
-    --bind "change:pos(1)" \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
@@ -31,7 +29,7 @@ const (
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
 	shellFzfClipboard = `
-  fzf --no-sort \
+  fzf \
     --prompt 'Copy which one to the clipboard?: ' \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
@@ -43,7 +41,7 @@ const (
     --bind=space:accept,tab:offset-down,btab:offset-up
 `
 	shellFzfPath = `
-  fzf --no-sort \
+  fzf \
     --prompt 'Run: ' \
     --layout=reverse --info=hidden \
     --bind=space:accept,tab:offset-down,btab:offset-up
@@ -75,13 +73,13 @@ const (
 
 func CmdFzfSwitcher(_ *cobra.Command, _ []string) {
 	// req the daemon
-	input, err := daemon.RemoteCall("Daemon.RemoteFZFList", daemon.RPCArgs{})
+	input, err := daemon.RemoteCall("Daemon.RemoteFZFListSwitcher", daemon.RPCArgs{})
 	if err != nil {
 		log.Fatalf("rpc error: %s", err)
 	}
 
 	// run fzf
-	result, err := runFZF(shellFzf, &input)
+	result, err := runFZF(shellFzfSwitcher, &input)
 	if err != nil {
 		log.Fatalf("fzf error: %s", err)
 	}

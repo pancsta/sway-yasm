@@ -37,15 +37,21 @@ func (d *Daemon) RemoteWinList(_ RPCArgs, reply *string) error {
 	for _, id := range d.winFocus {
 		ids += fmt.Sprintf("%s ", id)
 	}
+	
 	*reply = ids
 	return nil
 }
 
 // RemoteFZFList is an RPC method
-func (d *Daemon) RemoteFZFList(_ RPCArgs, reply *string) error {
+func (d *Daemon) RemoteFZFListSwitcher(_ RPCArgs, reply *string) error {
 	ret := ""
 	// TODO extract
-	for _, id := range d.winFocus {
+	for i, id := range d.winFocus {
+		// skip current window
+		if i == 0 {
+			continue
+		}
+
 		data := d.winData[id]
 		display := strings.Replace(data.Output, "HEADLESS-", "H-", 1)
 		// ret += fmt.Sprintf("%-*s (%s) %s| %-*s | %-*s | %-*s \n",
@@ -57,6 +63,7 @@ func (d *Daemon) RemoteFZFList(_ RPCArgs, reply *string) error {
 			id,
 		)
 	}
+
 	*reply = ret
 	return nil
 }
@@ -82,6 +89,7 @@ func (d *Daemon) RemoteFZFListPickWin(_ RPCArgs, reply *string) error {
 			id,
 		)
 	}
+
 	*reply = ret
 	return nil
 }
@@ -94,6 +102,7 @@ func (d *Daemon) RemoteFZFListPickSpace(_ RPCArgs, reply *string) error {
 		log.Printf("error: %s", err)
 		return err
 	}
+
 	*reply = strings.Join(spaces, "\n")
 	return nil
 }
@@ -116,6 +125,7 @@ func (d *Daemon) RemoteShouldOpen(args RPCArgs, reply *string) error {
 	} else {
 		*reply = "false"
 	}
+
 	return nil
 }
 
@@ -127,6 +137,7 @@ func (d *Daemon) RemoteFocusWinID(args RPCArgs, _ *string) error {
 		log.Printf("error: %s", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -167,6 +178,7 @@ func (d *Daemon) RemoteMoveWinToSpace(args RPCArgs, _ *string) error {
 		log.Printf("error: %s", err)
 		return err
 	}
+
 	return nil
 }
 
