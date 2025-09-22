@@ -573,7 +573,7 @@ func (d *Daemon) spaceNameFromID(spaceID int) (string, error) {
 	}
 
 	for _, name := range names {
-		if strings.HasPrefix(name, spaceIDStr+":") {
+		if strings.HasPrefix(name, spaceIDStr) {
 			return name, nil
 		}
 

@@ -37,7 +37,7 @@ func (d *Daemon) RemoteWinList(_ RPCArgs, reply *string) error {
 	for _, id := range d.winFocus {
 		ids += fmt.Sprintf("%s ", id)
 	}
-	
+
 	*reply = ids
 	return nil
 }
@@ -85,11 +85,16 @@ func (d *Daemon) RemoteFZFListPickWin(_ RPCArgs, reply *string) error {
 			continue
 		}
 		display := strings.Replace(data.Output, "HEADLESS-", "H-", 1)
+		mark := data.Mark
+		if mark != "" {
+			mark = "[" + mark + "] "
+		}
 		// ret += fmt.Sprintf("%-*s (%s) %s| %-*s | %-*s | %-*s \n",
-		ret += fmt.Sprintf("%-*s | %-*s | %-*s | %-*s (%s) \n",
+		ret += fmt.Sprintf("%-*s | %-*s | %-*s | %s%-*s (%s) \n",
 			lenDisplay, maxLen(display, lenDisplay),
 			lenSpace, maxLen(data.Workspace, lenSpace),
 			lenApp, maxLen(data.App, lenApp),
+			mark,
 			lenTitle, maxLen(data.Title, lenTitle),
 			id,
 		)
